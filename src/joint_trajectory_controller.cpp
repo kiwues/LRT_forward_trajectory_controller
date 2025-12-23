@@ -17,6 +17,7 @@
 #include <chrono>
 #include <functional>
 #include <memory>
+#include <array> 
 
 #include <string>
 #include <vector>
@@ -103,10 +104,16 @@ JointTrajectoryController::state_interface_configuration() const
 {
   controller_interface::InterfaceConfiguration conf;
   conf.type = controller_interface::interface_configuration_type::INDIVIDUAL;
-  conf.names.reserve(dof_ * params_.state_interfaces.size());
+  static const std::array<std::string, 3> kFixedStateInterfaces = {
+  hardware_interface::HW_IF_POSITION,
+  hardware_interface::HW_IF_VELOCITY,
+  hardware_interface::HW_IF_EFFORT,
+  };
+
+  conf.names.reserve(dof_ * kFixedStateInterfaces.size());
   for (const auto & joint_name : params_.joints)
   {
-    for (const auto & interface_type : params_.state_interfaces)
+    for (const auto & interface_type : kFixedStateInterfaces)
     {
       conf.names.push_back(joint_name + "/" + interface_type);
     }
@@ -293,32 +300,54 @@ controller_interface::return_type JointTrajectoryController::update(
       if (!tolerance_violated_while_moving && within_goal_time)
       {
         if (use_closed_loop_pid_adapter_)
-        {
-          // Update PIDs
+        { 
           for (auto i = 0ul; i < dof_; ++i)
           {
-            tmp_command_[i] = (state_desired_.velocities[i] * ff_velocity_scale_[i]) +
-                              pids_[i]->computeCommand(
-                                state_error_.positions[i], state_error_.velocities[i],
-                                (uint64_t)period.nanoseconds());
+            const double ff = state_desired_.velocities[i] * ff_velocity_scale_[i];
+
+            if (params_.open_loop_control)
+            {
+              // Open-loop: no feedback term (no PID), only feedforward.
+              tmp_command_[i] = ff;
+            }
+            else
+            {
+              // Closed-loop: feedforward + PID feedback.
+              tmp_command_[i] = ff + pids_[i]->computeCommand(
+                state_error_.positions[i], state_error_.velocities[i],
+                (uint64_t)period.nanoseconds());
+            }
           }
         }
 
+        // PE mode = position + effort command interfaces, but NO velocity command interface.
+        // Semantics: effort is the main command (torque control), position is only a reference.
+        // To avoid conflicting control modes, keep position_command neutral = current position.
+        const bool is_pe_mode =
+          has_position_command_interface_ &&
+          has_effort_command_interface_ &&
+          !has_velocity_command_interface_;
+        
         // set values for next hardware write()
+        
         if (has_position_command_interface_)
         {
-          assign_interface_from_point(joint_command_interface_[0], state_desired_.positions);
-        }
-        if (has_velocity_command_interface_)
-        {
-          if (use_closed_loop_pid_adapter_)
+          if (is_pe_mode)
           {
-            assign_interface_from_point(joint_command_interface_[1], tmp_command_);
+            // Neutral position command (variant 2): hold current position to avoid mode conflict.
+            assign_interface_from_point(joint_command_interface_[0], state_current_.positions);
           }
           else
           {
-            assign_interface_from_point(joint_command_interface_[1], state_desired_.velocities);
+            // Normal trajectory tracking: send desired position from interpolation.
+            assign_interface_from_point(joint_command_interface_[0], state_desired_.positions);
           }
+        }
+        if (has_velocity_command_interface_)
+        {
+          // IMPORTANT (PVE fix): even when effort interface is present (and PID adapter is used),
+          // the velocity command interface must receive desired velocities, not tmp_command_ (PID/effort output).
+          assign_interface_from_point(joint_command_interface_[1], state_desired_.velocities);
         }
         if (has_acceleration_command_interface_)
         {
@@ -723,6 +752,109 @@ controller_interface::CallbackReturn JointTrajectoryController::on_configure(
   has_effort_command_interface_ =
     contains_interface_type(params_.command_interfaces, hardware_interface::HW_IF_EFFORT);
 
+  // We request and use fixed state interfaces independent of `params_.state_interfaces`:
+  // always position + velocity + effort, and never acceleration.
+  has_position_state_interface_ = true;
+  has_velocity_state_interface_ = true;
+  has_effort_state_interface_ = true;
+  has_acceleration_state_interface_ = false;
+
+  // Allowed command interface combinations:
+  // 1) [position]
+  // 2) [position, velocity]
+  // 3) [position, effort]
+  // 4) [position, velocity, effort]
+  //
+  // Not allowed:
+  // - acceleration in command interfaces
+  // - velocity without position
+  // - effort without position
+  // - any other combination / size
+
+  if (has_acceleration_command_interface_)
+  {
+    RCLCPP_ERROR(
+      logger, "Command interface 'acceleration' is not allowed. "
+      "Allowed: [position], [position, velocity], [position, effort], [position, velocity, effort].");
+    return CallbackReturn::ERROR;
+  }
+
+  if (!has_position_command_interface_)
+  {
+    RCLCPP_ERROR(
+      logger, "Command interface 'position' is required. "
+      "Allowed: [position], [position, velocity], [position, effort], [position, velocity, effort].");
+    return CallbackReturn::ERROR;
+  }
+
+  // With position present and acceleration absent, only optional parts are: velocity and/or effort.
+  // Therefore allowed sizes are 1, 2, or 3.
+  const auto cmd_size = params_.command_interfaces.size();
+  if (cmd_size < 1 || cmd_size > 3)
+  {
+    RCLCPP_ERROR(
+      logger, "Invalid number of command interfaces (%zu). "
+      "Allowed: 1..3 and only these combinations: "
+      "[position], [position, velocity], [position, effort], [position, velocity, effort].",
+      cmd_size);
+    return CallbackReturn::ERROR;
+  }
+
+  // Disallow velocity-only or effort-only (already indirectly blocked by requiring position,
+  // but keep explicit checks for clearer error messages if something changes later).
+  if (has_velocity_command_interface_ && !has_position_command_interface_)
+  {
+    RCLCPP_ERROR(logger, "Invalid command interfaces: 'velocity' without 'position' is not allowed.");
+    return CallbackReturn::ERROR;
+  }
+
+  if (has_effort_command_interface_ && !has_position_command_interface_)
+  {
+    RCLCPP_ERROR(logger, "Invalid command interfaces: 'effort' without 'position' is not allowed.");
+    return CallbackReturn::ERROR;
+  }
+
+  // Now validate the exact allowed combinations:
+  // - size==1 => must be [position]
+  if (cmd_size == 1)
+  {
+    if (!(has_position_command_interface_ && !has_velocity_command_interface_ && !has_effort_command_interface_))
+    {
+      RCLCPP_ERROR(
+        logger, "Invalid command interfaces. Allowed: "
+        "[position], [position, velocity], [position, effort], [position, velocity, effort].");
+      return CallbackReturn::ERROR;
+    }
+  }
+
+  // - size==2 => must be [position, velocity] OR [position, effort]
+  if (cmd_size == 2)
+  {
+    const bool is_pv = has_position_command_interface_ && has_velocity_command_interface_ && !has_effort_command_interface_;
+    const bool is_pe = has_position_command_interface_ && !has_velocity_command_interface_ && has_effort_command_interface_;
+    if (!(is_pv || is_pe))
+    {
+      RCLCPP_ERROR(
+        logger, "Invalid command interfaces. Allowed: "
+        "[position], [position, velocity], [position, effort], [position, velocity, effort].");
+      return CallbackReturn::ERROR;
+    }
+  }
+
+  // - size==3 => must be [position, velocity, effort]
+  if (cmd_size == 3)
+  {
+    const bool is_pve =
+      has_position_command_interface_ && has_velocity_command_interface_ && has_effort_command_interface_;
+    if (!is_pve)
+    {
+      RCLCPP_ERROR(
+        logger, "Invalid command interfaces. Allowed: "
+        "[position], [position, velocity], [position, effort], [position, velocity, effort].");
+      return CallbackReturn::ERROR;
+    }
+  }
+  
   // if there is only velocity or if there is effort command interface
   // then use also PID adapter
   use_closed_loop_pid_adapter_ =
@@ -777,7 +909,7 @@ controller_interface::CallbackReturn JointTrajectoryController::on_configure(
     contains_interface_type(params_.state_interfaces, hardware_interface::HW_IF_VELOCITY);
   has_acceleration_state_interface_ =
     contains_interface_type(params_.state_interfaces, hardware_interface::HW_IF_ACCELERATION);
-
+  
   // Validation of combinations of state and velocity together have to be done
   // here because the parameter validators only deal with each parameter
   // separately.
@@ -979,13 +1111,17 @@ controller_interface::CallbackReturn JointTrajectoryController::on_activate(
       return CallbackReturn::ERROR;
     }
   }
-  for (const auto & interface : params_.state_interfaces)
-  {
-    auto it =
-      std::find(allowed_interface_types_.begin(), allowed_interface_types_.end(), interface);
+  static const std::array<std::string, 3> kFixedStateInterfaces = {
+    hardware_interface::HW_IF_POSITION,
+    hardware_interface::HW_IF_VELOCITY,
+    hardware_interface::HW_IF_EFFORT,
+  };
+
+  for (const auto & interface : kFixedStateInterfaces)
+  { 
+    auto it = std::find(allowed_interface_types_.begin(), allowed_interface_types_.end(), interface);
     auto index = static_cast<size_t>(std::distance(allowed_interface_types_.begin(), it));
-    if (!controller_interface::get_ordered_interfaces(
-          state_interfaces_, params_.joints, interface, joint_state_interface_[index]))
+    if (!controller_interface::get_ordered_interfaces(state_interfaces_, params_.joints, interface, joint_state_interface_[index]))
     {
       RCLCPP_ERROR(
         logger, "Expected %zu '%s' state interfaces, got %zu.", dof_, interface.c_str(),
