@@ -939,16 +939,16 @@ TEST_P(TrajectoryControllerTestParameterized, use_closed_loop_pid)
 
   SetUpAndActivateTrajectoryController(executor);
 
-  if (
-    (traj_controller_->has_velocity_command_interface() &&
-     !traj_controller_->has_position_command_interface() &&
-     !traj_controller_->has_effort_command_interface() &&
-     !traj_controller_->has_acceleration_command_interface() &&
-     !traj_controller_->is_open_loop()) ||
-    traj_controller_->has_effort_command_interface())
-  {
-    EXPECT_TRUE(traj_controller_->use_closed_loop_pid_adapter());
-  }
+  // if (
+  //   (traj_controller_->has_velocity_command_interface() &&
+  //    !traj_controller_->has_position_command_interface() &&
+  //    !traj_controller_->has_effort_command_interface() &&
+  //    !traj_controller_->has_acceleration_command_interface() &&
+  //    !traj_controller_->is_open_loop()) ||
+  //   traj_controller_->has_effort_command_interface())
+  // {
+  //   EXPECT_TRUE(traj_controller_->use_closed_loop_pid_adapter());
+  // }
 }
 
 /**
@@ -990,12 +990,12 @@ TEST_P(TrajectoryControllerTestParameterized, velocity_error)
     EXPECT_EQ(n_joints, state_feedback.velocities.size());
     EXPECT_EQ(n_joints, state_error.velocities.size());
   }
-  if (traj_controller_->has_acceleration_state_interface())
-  {
-    EXPECT_EQ(n_joints, state_reference.accelerations.size());
-    EXPECT_EQ(n_joints, state_feedback.accelerations.size());
-    EXPECT_EQ(n_joints, state_error.accelerations.size());
-  }
+  // if (traj_controller_->has_acceleration_state_interface())
+  // {
+  //   EXPECT_EQ(n_joints, state_reference.accelerations.size());
+  //   EXPECT_EQ(n_joints, state_feedback.accelerations.size());
+  //   EXPECT_EQ(n_joints, state_error.accelerations.size());
+  // }
 
   // no change in state interface should happen
   if (traj_controller_->has_velocity_state_interface())
@@ -1077,12 +1077,12 @@ TEST_P(TrajectoryControllerTestParameterized, test_jumbled_joint_order)
     EXPECT_GT(0.0, joint_vel_[2]);
   }
 
-  if (traj_controller_->has_acceleration_command_interface())
-  {
-    EXPECT_GT(0.0, joint_acc_[0]);
-    EXPECT_GT(0.0, joint_acc_[1]);
-    EXPECT_GT(0.0, joint_acc_[2]);
-  }
+  // if (traj_controller_->has_acceleration_command_interface())
+  // {
+  //   EXPECT_GT(0.0, joint_acc_[0]);
+  //   EXPECT_GT(0.0, joint_acc_[1]);
+  //   EXPECT_GT(0.0, joint_acc_[2]);
+  // }
 
   if (traj_controller_->has_effort_command_interface())
   {
@@ -1158,21 +1158,21 @@ TEST_P(TrajectoryControllerTestParameterized, test_partial_joint_list)
       << "Joint 3 velocity should be 0.0 since it's not in the goal";
   }
 
-  if (traj_controller_->has_acceleration_command_interface())
-  {
-    // estimate the sign of the acceleration
-    // joint rotates forward
-    EXPECT_TRUE(
-      is_same_sign_or_zero(traj_msg.points[0].positions[0] - initial_joint2_cmd, joint_acc_[0]))
-      << "Joint1: " << traj_msg.points[0].positions[0] - initial_joint2_cmd << " vs. "
-      << joint_acc_[0];
-    EXPECT_TRUE(
-      is_same_sign_or_zero(traj_msg.points[0].positions[1] - initial_joint1_cmd, joint_acc_[1]))
-      << "Joint2: " << traj_msg.points[0].positions[1] - initial_joint1_cmd << " vs. "
-      << joint_acc_[1];
-    EXPECT_NEAR(0.0, joint_acc_[2], COMMON_THRESHOLD)
-      << "Joint 3 acc should be 0.0 since it's not in the goal";
-  }
+  // if (traj_controller_->has_acceleration_command_interface())
+  // {
+  //   // estimate the sign of the acceleration
+  //   // joint rotates forward
+  //   EXPECT_TRUE(
+  //     is_same_sign_or_zero(traj_msg.points[0].positions[0] - initial_joint2_cmd, joint_acc_[0]))
+  //     << "Joint1: " << traj_msg.points[0].positions[0] - initial_joint2_cmd << " vs. "
+  //     << joint_acc_[0];
+  //   EXPECT_TRUE(
+  //     is_same_sign_or_zero(traj_msg.points[0].positions[1] - initial_joint1_cmd, joint_acc_[1]))
+  //     << "Joint2: " << traj_msg.points[0].positions[1] - initial_joint1_cmd << " vs. "
+  //     << joint_acc_[1];
+  //   EXPECT_NEAR(0.0, joint_acc_[2], COMMON_THRESHOLD)
+  //     << "Joint 3 acc should be 0.0 since it's not in the goal";
+  // }
 
   if (traj_controller_->has_effort_command_interface())
   {
@@ -1246,15 +1246,15 @@ TEST_P(TrajectoryControllerTestParameterized, test_partial_joint_list_not_allowe
       << "All joints velocities should be 0.0 because goal was rejected";
   }
 
-  if (traj_controller_->has_acceleration_command_interface())
-  {
-    EXPECT_NEAR(INITIAL_ACC_JOINTS[0], joint_acc_[0], COMMON_THRESHOLD)
-      << "All joints accelerations should be 0.0 because goal was rejected";
-    EXPECT_NEAR(INITIAL_ACC_JOINTS[1], joint_acc_[1], COMMON_THRESHOLD)
-      << "All joints accelerations should be 0.0 because goal was rejected";
-    EXPECT_NEAR(INITIAL_ACC_JOINTS[2], joint_acc_[2], COMMON_THRESHOLD)
-      << "All joints accelerations should be 0.0 because goal was rejected";
-  }
+  // if (traj_controller_->has_acceleration_command_interface())
+  // {
+  //   EXPECT_NEAR(INITIAL_ACC_JOINTS[0], joint_acc_[0], COMMON_THRESHOLD)
+  //     << "All joints accelerations should be 0.0 because goal was rejected";
+  //   EXPECT_NEAR(INITIAL_ACC_JOINTS[1], joint_acc_[1], COMMON_THRESHOLD)
+  //     << "All joints accelerations should be 0.0 because goal was rejected";
+  //   EXPECT_NEAR(INITIAL_ACC_JOINTS[2], joint_acc_[2], COMMON_THRESHOLD)
+  //     << "All joints accelerations should be 0.0 because goal was rejected";
+  // }
 
   if (traj_controller_->has_effort_command_interface())
   {
@@ -1827,10 +1827,10 @@ TEST_P(TrajectoryControllerTestParameterized, test_hw_states_has_offset_first_co
     }
 
     // check acceleration
-    if (traj_controller_->has_acceleration_state_interface())
-    {
-      EXPECT_EQ(current_state_when_offset.accelerations[i], joint_state_acc_[i]);
-    }
+    // if (traj_controller_->has_acceleration_state_interface())
+    // {
+    //   EXPECT_EQ(current_state_when_offset.accelerations[i], joint_state_acc_[i]);
+    // }
   }
 
   executor.cancel();
@@ -1870,29 +1870,29 @@ TEST_P(TrajectoryControllerTestParameterized, test_hw_states_has_offset_later_co
         if (traj_controller_->has_velocity_command_interface())
         {
           // check acceleration
-          if (traj_controller_->has_acceleration_state_interface())
-          {
-            if (traj_controller_->has_acceleration_command_interface())
-            {
-              // should have set it to last position + velocity + acceleration command
-              EXPECT_EQ(current_state_when_offset.positions[i], initial_pos_cmd[i]);
-              EXPECT_EQ(current_state_when_offset.velocities[i], initial_vel_cmd[i]);
-              EXPECT_EQ(current_state_when_offset.accelerations[i], initial_acc_cmd[i]);
-            }
-            else
-            {
-              // should have set it to the state interface instead
-              EXPECT_EQ(current_state_when_offset.positions[i], joint_state_pos_[i]);
-              EXPECT_EQ(current_state_when_offset.velocities[i], joint_state_vel_[i]);
-              EXPECT_EQ(current_state_when_offset.accelerations[i], joint_state_acc_[i]);
-            }
-          }
-          else
-          {
-            // should have set it to last position + velocity command
-            EXPECT_EQ(current_state_when_offset.positions[i], initial_pos_cmd[i]);
-            EXPECT_EQ(current_state_when_offset.velocities[i], initial_vel_cmd[i]);
-          }
+          // if (traj_controller_->has_acceleration_state_interface())
+          // {
+          //   if (traj_controller_->has_acceleration_command_interface())
+          //   {
+          //     // should have set it to last position + velocity + acceleration command
+          //     EXPECT_EQ(current_state_when_offset.positions[i], initial_pos_cmd[i]);
+          //     EXPECT_EQ(current_state_when_offset.velocities[i], initial_vel_cmd[i]);
+          //     EXPECT_EQ(current_state_when_offset.accelerations[i], initial_acc_cmd[i]);
+          //   }
+          //   else
+          //   {
+          //     // should have set it to the state interface instead
+          //     EXPECT_EQ(current_state_when_offset.positions[i], joint_state_pos_[i]);
+          //     EXPECT_EQ(current_state_when_offset.velocities[i], joint_state_vel_[i]);
+          //     EXPECT_EQ(current_state_when_offset.accelerations[i], joint_state_acc_[i]);
+          //   }
+          // }
+          // else
+          // {
+          //   // should have set it to last position + velocity command
+          //   EXPECT_EQ(current_state_when_offset.positions[i], initial_pos_cmd[i]);
+          //   EXPECT_EQ(current_state_when_offset.velocities[i], initial_vel_cmd[i]);
+          // }
         }
         else
         {

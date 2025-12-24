@@ -24,7 +24,7 @@ joint_trajectory_controller:
     read_only: true,
     validation: {
       unique<>: null,
-      subset_of<>: [["position", "velocity", "acceleration", "effort",]],
+      subset_of<>: [["position", "velocity", "effort",]],
       "joint_trajectory_controller::command_interface_type_combinations": null,
     }
   }
@@ -35,7 +35,7 @@ joint_trajectory_controller:
     read_only: true,
     validation: {
       unique<>: null,
-      subset_of<>: [["position", "velocity", "acceleration",]],
+      subset_of<>: [["position", "velocity", "effort",]],
       "joint_trajectory_controller::state_interface_type_combinations": null,
     }
   }
@@ -174,4 +174,4 @@ joint_trajectory_controller:
         type: double,
         default_value: 0.0,
         description: "Per-joint trajectory offset tolerance at the goal position.",
-      }
+    }

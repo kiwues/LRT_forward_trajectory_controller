@@ -145,14 +145,14 @@ public:
 
   bool has_velocity_state_interface() const { return has_velocity_state_interface_; }
 
-  bool has_acceleration_state_interface() const { return has_acceleration_state_interface_; }
+  // bool has_acceleration_state_interface() const { return has_acceleration_state_interface_; }
 
   bool has_position_command_interface() const { return has_position_command_interface_; }
 
   bool has_velocity_command_interface() const { return has_velocity_command_interface_; }
 
-  bool has_acceleration_command_interface() const { return has_acceleration_command_interface_; }
-
+  // bool has_acceleration_command_interface() const { return has_acceleration_command_interface_; }
+  //
   bool has_effort_command_interface() const { return has_effort_command_interface_; }
 
   bool use_closed_loop_pid_adapter() const { return use_closed_loop_pid_adapter_; }
@@ -641,12 +641,12 @@ public:
         EXPECT_EQ(velocity.at(2), joint_vel_[2]);
       }
 
-      if (traj_controller_->has_acceleration_command_interface())
-      {
-        EXPECT_EQ(0.0, joint_acc_[0]);
-        EXPECT_EQ(0.0, joint_acc_[1]);
-        EXPECT_EQ(0.0, joint_acc_[2]);
-      }
+      // if (traj_controller_->has_acceleration_command_interface())
+      // {
+      //   EXPECT_EQ(0.0, joint_acc_[0]);
+      //   EXPECT_EQ(0.0, joint_acc_[1]);
+      //   EXPECT_EQ(0.0, joint_acc_[2]);
+      // }
 
       if (traj_controller_->has_effort_command_interface())
       {
@@ -701,12 +701,12 @@ public:
       EXPECT_EQ(0.0, joint_vel_[2]);
     }
 
-    if (traj_controller_->has_acceleration_command_interface())
-    {
-      EXPECT_EQ(0.0, joint_acc_[0]);
-      EXPECT_EQ(0.0, joint_acc_[1]);
-      EXPECT_EQ(0.0, joint_acc_[2]);
-    }
+    // if (traj_controller_->has_acceleration_command_interface())
+    // {
+    //   EXPECT_EQ(0.0, joint_acc_[0]);
+    //   EXPECT_EQ(0.0, joint_acc_[1]);
+    //   EXPECT_EQ(0.0, joint_acc_[2]);
+    // }
 
     if (traj_controller_->has_effort_command_interface())
     {

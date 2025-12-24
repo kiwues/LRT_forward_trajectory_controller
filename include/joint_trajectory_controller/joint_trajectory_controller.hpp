@@ -98,7 +98,6 @@ protected:
   const std::vector<std::string> allowed_interface_types_ = {
     hardware_interface::HW_IF_POSITION,
     hardware_interface::HW_IF_VELOCITY,
-    hardware_interface::HW_IF_ACCELERATION,
     hardware_interface::HW_IF_EFFORT,
   };
 
@@ -134,10 +133,9 @@ protected:
 
   bool has_position_state_interface_ = false;
   bool has_velocity_state_interface_ = false;
-  bool has_acceleration_state_interface_ = false;
+  bool has_effort_state_interface_ = false;
   bool has_position_command_interface_ = false;
   bool has_velocity_command_interface_ = false;
-  bool has_acceleration_command_interface_ = false;
   bool has_effort_command_interface_ = false;
 
   /// If true, a velocity feedforward term plus corrective PID term is used
