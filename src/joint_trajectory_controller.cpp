@@ -512,24 +512,16 @@ bool JointTrajectoryController::read_state_from_command_interfaces(JointTrajecto
   {
     state.velocities.clear();
   }
-  // Acceleration is used only in combination with velocity
-  // if (has_acceleration_state_interface_)
-  // {
-  //   if (has_acceleration_command_interface_ && interface_has_values(joint_command_interface_[2]))
-  //   {
-  //     assign_point_from_interface(state.accelerations, joint_command_interface_[2]);
-  //   }
-  //   else
-  //   {
-  //     state.accelerations.clear();
-  //     has_values = false;
-  //   }
-  // }
-  // else
-  // {
-  //   state.accelerations.clear();
-  // }
-
+  if(has_effort_state_interface_){
+	  if(has_effort_command_interface_ && interface_has_values(joint_command_interface_[2])){
+	assign_point_from_interface(state.effort, joint_command_interface_[2]);
+	  }else {
+		  state.effort.clear();
+		  has_values=false;
+	  }
+  }else{
+	  state.effort.clear();
+  }
   return has_values;
 }
 
@@ -1088,12 +1080,6 @@ controller_interface::CallbackReturn JointTrajectoryController::on_deactivate(
     if (has_effort_command_interface_)
     {
       joint_command_interface_[2][index].get().set_value(0.0);
-    }
-
-    // TODO(anyone): How to halt when using effort commands?
-    if (has_effort_command_interface_)
-    {
-      joint_command_interface_[3][index].get().set_value(0.0);
     }
   }
 
@@ -1735,16 +1721,11 @@ void JointTrajectoryController::init_hold_position_msg()
   hold_position_msg_ptr_->points[0].velocities.clear();
   hold_position_msg_ptr_->points[0].accelerations.clear();
   hold_position_msg_ptr_->points[0].effort.clear();
-  // if (has_velocity_command_interface_ || has_acceleration_command_interface_)
-  // {
-  //   // add velocity, so that trajectory sampling returns velocity points in any case
-  //   hold_position_msg_ptr_->points[0].velocities.resize(dof_, 0.0);
-  // }
-  // if (has_acceleration_command_interface_)
-  // {
-  //   // add velocity, so that trajectory sampling returns acceleration points in any case
-  //   hold_position_msg_ptr_->points[0].accelerations.resize(dof_, 0.0);
-  // }
+  if (has_velocity_command_interface_)
+  {
+    // add velocity, so that trajectory sampling returns velocity points in any case
+    hold_position_msg_ptr_->points[0].velocities.resize(dof_, 0.0);
+  }
 }
 
 }  // namespace joint_trajectory_controller
