@@ -138,17 +138,17 @@ protected:
   bool has_velocity_command_interface_ = false;
   bool has_effort_command_interface_ = false;
 
-  /// If true, a velocity feedforward term plus corrective PID term is used
-  bool use_closed_loop_pid_adapter_ = false;
-  using PidPtr = std::shared_ptr<control_toolbox::Pid>;
-  std::vector<PidPtr> pids_;
-  // Feed-forward velocity weight factor when calculating closed loop pid adapter's command
-  std::vector<double> ff_velocity_scale_;
+  // /// If true, a velocity feedforward term plus corrective PID term is used
+  // bool use_closed_loop_pid_adapter_ = false;
+  // using PidPtr = std::shared_ptr<control_toolbox::Pid>;
+  // std::vector<PidPtr> pids_;
+  // // Feed-forward velocity weight factor when calculating closed loop pid adapter's command
+  // std::vector<double> ff_velocity_scale_;
   // Configuration for every joint if it wraps around (ie. is continuous, position error is
   // normalized)
   std::vector<bool> joints_angle_wraparound_;
   // reserved storage for result of the command when closed loop pid adapter is used
-  std::vector<double> tmp_command_;
+  // std::vector<double> tmp_command_;
 
   // Timeout to consider commands old
   double cmd_timeout_;
@@ -271,7 +271,7 @@ protected:
     std::shared_ptr<control_msgs::srv::QueryTrajectoryState::Response> response);
 
 private:
-  void update_pids();
+  // void update_pids();
 
   bool contains_interface_type(
     const std::vector<std::string> & interface_type_list, const std::string & interface_type);

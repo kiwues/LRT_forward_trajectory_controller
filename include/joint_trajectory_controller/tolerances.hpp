@@ -52,7 +52,7 @@ struct StateTolerances
 {
   double position = 0.0;
   double velocity = 0.0;
-  double acceleration = 0.0;
+  double effort = 0.0;
 };
 
 /**
@@ -211,9 +211,9 @@ SegmentTolerances get_segment_tolerances(
       interface = "velocity";
       active_tolerances.state_tolerance[i].velocity = resolve_tolerance_source(
         default_tolerances.state_tolerance[i].velocity, joint_tol.velocity);
-      interface = "acceleration";
-      active_tolerances.state_tolerance[i].acceleration = resolve_tolerance_source(
-        default_tolerances.state_tolerance[i].acceleration, joint_tol.acceleration);
+      interface = "effort";
+      active_tolerances.state_tolerance[i].effort = resolve_tolerance_source(
+        default_tolerances.state_tolerance[i].effort, joint_tol.acceleration);
     }
     catch (const std::runtime_error & e)
     {
@@ -232,8 +232,8 @@ SegmentTolerances get_segment_tolerances(
       logger, "%s %f", (joint + ".state_tolerance.velocity").c_str(),
       active_tolerances.state_tolerance[i].velocity);
     RCLCPP_DEBUG(
-      logger, "%s %f", (joint + ".state_tolerance.acceleration").c_str(),
-      active_tolerances.state_tolerance[i].acceleration);
+      logger, "%s %f", (joint + ".state_tolerance.effort").c_str(),
+      active_tolerances.state_tolerance[i].effort);
   }
   for (auto goal_tol : goal.goal_tolerance)
   {
@@ -260,9 +260,9 @@ SegmentTolerances get_segment_tolerances(
       interface = "velocity";
       active_tolerances.goal_state_tolerance[i].velocity = resolve_tolerance_source(
         default_tolerances.goal_state_tolerance[i].velocity, goal_tol.velocity);
-      interface = "acceleration";
-      active_tolerances.goal_state_tolerance[i].acceleration = resolve_tolerance_source(
-        default_tolerances.goal_state_tolerance[i].acceleration, goal_tol.acceleration);
+      interface = "effort";
+      active_tolerances.goal_state_tolerance[i].effort = resolve_tolerance_source(
+        default_tolerances.goal_state_tolerance[i].effort, goal_tol.acceleration);
     }
     catch (const std::runtime_error & e)
     {
@@ -281,8 +281,8 @@ SegmentTolerances get_segment_tolerances(
       logger, "%s %f", (joint + ".goal_state_tolerance.velocity").c_str(),
       active_tolerances.goal_state_tolerance[i].velocity);
     RCLCPP_DEBUG(
-      logger, "%s %f", (joint + ".goal_state_tolerance.acceleration").c_str(),
-      active_tolerances.goal_state_tolerance[i].acceleration);
+      logger, "%s %f", (joint + ".goal_state_tolerance.effort").c_str(),
+      active_tolerances.goal_state_tolerance[i].effort);
   }
 
   return active_tolerances;
@@ -303,13 +303,13 @@ inline bool check_state_tolerance_per_joint(
   const double error_position = state_error.positions[joint_idx];
   const double error_velocity =
     state_error.velocities.empty() ? 0.0 : state_error.velocities[joint_idx];
-  const double error_acceleration =
-    state_error.accelerations.empty() ? 0.0 : state_error.accelerations[joint_idx];
+  const double error_effort =
+    state_error.effort.empty() ? 0.0 : state_error.effort[joint_idx];
 
   const bool is_valid =
     !(state_tolerance.position > 0.0 && abs(error_position) > state_tolerance.position) &&
     !(state_tolerance.velocity > 0.0 && abs(error_velocity) > state_tolerance.velocity) &&
-    !(state_tolerance.acceleration > 0.0 && abs(error_acceleration) > state_tolerance.acceleration);
+    !(state_tolerance.effort > 0.0 && abs(error_effort) > state_tolerance.effort);
 
   if (is_valid)
   {
@@ -334,11 +334,11 @@ inline bool check_state_tolerance_per_joint(
         state_tolerance.velocity);
     }
     if (
-      state_tolerance.acceleration > 0.0 && abs(error_acceleration) > state_tolerance.acceleration)
+      state_tolerance.effort > 0.0 && abs(error_effort) > state_tolerance.effort)
     {
       RCLCPP_ERROR(
-        logger, "Acceleration Error: %f, Acceleration Tolerance: %f", error_acceleration,
-        state_tolerance.acceleration);
+        logger, "Acceleration Error: %f, Acceleration Tolerance: %f", error_effort,
+        state_tolerance.effort);
     }
   }
   return false;

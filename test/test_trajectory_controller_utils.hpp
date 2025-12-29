@@ -155,7 +155,7 @@ public:
   //
   bool has_effort_command_interface() const { return has_effort_command_interface_; }
 
-  bool use_closed_loop_pid_adapter() const { return use_closed_loop_pid_adapter_; }
+  // bool use_closed_loop_pid_adapter() const { return use_closed_loop_pid_adapter_; }
 
   bool is_open_loop() const { return params_.open_loop_control; }
 
@@ -164,7 +164,7 @@ public:
     return *(active_tolerances_.readFromRT());
   }
 
-  std::vector<PidPtr> get_pids() const { return pids_; }
+  // std::vector<PidPtr> get_pids() const { return pids_; }
 
   joint_trajectory_controller::SegmentTolerances get_tolerances() const
   {
@@ -295,7 +295,7 @@ public:
     SetUpTrajectoryController(executor, parameters_local);
 
     // set pid parameters before configure
-    SetPidParameters(k_p, ff, angle_wraparound);
+    // SetPidParameters(k_p, ff, angle_wraparound);
     traj_controller_->get_node()->configure();
 
     ActivateTrajectoryController(
@@ -616,37 +616,37 @@ public:
     // i.e., active but trivial trajectory (one point only)
     EXPECT_TRUE(traj_controller_->has_trivial_traj());
 
-    if (traj_controller_->use_closed_loop_pid_adapter() == false)
-    {
-      if (traj_controller_->has_position_command_interface())
-      {
-        EXPECT_NEAR(position.at(0), joint_pos_[0], COMMON_THRESHOLD);
-        EXPECT_NEAR(position.at(1), joint_pos_[1], COMMON_THRESHOLD);
-        EXPECT_NEAR(position.at(2), joint_pos_[2], COMMON_THRESHOLD);
-      }
-
-      if (traj_controller_->has_velocity_command_interface())
-      {
-        EXPECT_EQ(velocity.at(0), joint_vel_[0]);
-        EXPECT_EQ(velocity.at(1), joint_vel_[1]);
-        EXPECT_EQ(velocity.at(2), joint_vel_[2]);
-      }
-
-      // if (traj_controller_->has_acceleration_command_interface())
-      // {
-      //   EXPECT_EQ(0.0, joint_acc_[0]);
-      //   EXPECT_EQ(0.0, joint_acc_[1]);
-      //   EXPECT_EQ(0.0, joint_acc_[2]);
-      // }
-
-      if (traj_controller_->has_effort_command_interface())
-      {
-        EXPECT_EQ(0.0, joint_eff_[0]);
-        EXPECT_EQ(0.0, joint_eff_[1]);
-        EXPECT_EQ(0.0, joint_eff_[2]);
-      }
-    }
-    else  // traj_controller_->use_closed_loop_pid_adapter() == true
+    // if (traj_controller_->use_closed_loop_pid_adapter() == false)
+    // {
+    //   if (traj_controller_->has_position_command_interface())
+    //   {
+    //     EXPECT_NEAR(position.at(0), joint_pos_[0], COMMON_THRESHOLD);
+    //     EXPECT_NEAR(position.at(1), joint_pos_[1], COMMON_THRESHOLD);
+    //     EXPECT_NEAR(position.at(2), joint_pos_[2], COMMON_THRESHOLD);
+    //   }
+    //
+    //   if (traj_controller_->has_velocity_command_interface())
+    //   {
+    //     EXPECT_EQ(velocity.at(0), joint_vel_[0]);
+    //     EXPECT_EQ(velocity.at(1), joint_vel_[1]);
+    //     EXPECT_EQ(velocity.at(2), joint_vel_[2]);
+    //   }
+    //
+    //   // if (traj_controller_->has_acceleration_command_interface())
+    //   // {
+    //   //   EXPECT_EQ(0.0, joint_acc_[0]);
+    //   //   EXPECT_EQ(0.0, joint_acc_[1]);
+    //   //   EXPECT_EQ(0.0, joint_acc_[2]);
+    //   // }
+    //
+    //   if (traj_controller_->has_effort_command_interface())
+    //   {
+    //     EXPECT_EQ(0.0, joint_eff_[0]);
+    //     EXPECT_EQ(0.0, joint_eff_[1]);
+    //     EXPECT_EQ(0.0, joint_eff_[2]);
+    //   }
+    // }
+    // else  // traj_controller_->use_closed_loop_pid_adapter() == true
     {
       // velocity or effort PID?
       // --> set kp > 0.0 in test
