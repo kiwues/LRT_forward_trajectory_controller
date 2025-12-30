@@ -127,12 +127,6 @@ controller_interface::return_type JointTrajectoryController::update(
   {
     params_ = param_listener_->get_params();
     default_tolerances_ = get_segment_tolerances(logger, params_);
-    // // update the PID gains
-    // // variable use_closed_loop_pid_adapter_ is updated in on_configure only
-    // if (use_closed_loop_pid_adapter_)
-    // {
-    //   update_pids();
-    // }
   }
 
   auto compute_error_for_joint = [&](
@@ -292,18 +286,6 @@ controller_interface::return_type JointTrajectoryController::update(
       // set values for next hardware write() if tolerance is met
       if (!tolerance_violated_while_moving && within_goal_time)
       {
-        // if (use_closed_loop_pid_adapter_)
-        // {
-        //   // Update PIDs
-        //   for (auto i = 0ul; i < dof_; ++i)
-        //   {
-        //     tmp_command_[i] = (state_desired_.velocities[i] * ff_velocity_scale_[i]) +
-        //                       pids_[i]->computeCommand(
-        //                         state_error_.positions[i], state_error_.velocities[i],
-        //                         (uint64_t)period.nanoseconds());
-        //   }
-        // }
-
         // set values for next hardware write()
         if (has_position_command_interface_)
         {
@@ -430,7 +412,7 @@ void JointTrajectoryController::read_state_from_state_interfaces(JointTrajectory
   // Assign values from the hardware
   // Position states always exist
   assign_point_from_interface(state.positions, joint_state_interface_[0]);
-  // velocity and acceleration states are optional
+  // velocity and effort states are optional
   if (has_velocity_state_interface_)
   {
     assign_point_from_interface(state.velocities, joint_state_interface_[1]);
@@ -484,7 +466,7 @@ bool JointTrajectoryController::read_state_from_command_interfaces(JointTrajecto
     state.positions.clear();
     has_values = false;
   }
-  // velocity and acceleration states are optional
+  // velocity and effort states are optional
   if (has_velocity_state_interface_)
   {
     if (has_velocity_command_interface_ && interface_has_values(joint_command_interface_[1]))
@@ -689,21 +671,6 @@ controller_interface::CallbackReturn JointTrajectoryController::on_configure(
   has_effort_command_interface_ =
     contains_interface_type(params_.command_interfaces, hardware_interface::HW_IF_EFFORT);
 
-  // if there is only velocity or if there is effort command interface
-  // then use also PID adapter
-  // use_closed_loop_pid_adapter_ =
-  //   (has_velocity_command_interface_ && params_.command_interfaces.size() == 1 &&
-  //    !params_.open_loop_control) ||
-  //   has_effort_command_interface_;
-
-  // if (use_closed_loop_pid_adapter_)
-  // {
-  //   pids_.resize(dof_);
-  //   ff_velocity_scale_.resize(dof_);
-  //   tmp_command_.resize(dof_, 0.0);
-  //
-  //   update_pids();
-  // }
 
   // Configure joint position error normalization from ROS parameters (angle_wraparound)
   joints_angle_wraparound_.resize(dof_);
@@ -988,11 +955,6 @@ controller_interface::CallbackReturn JointTrajectoryController::on_activate(
     read_state_from_state_interfaces(state_current_);
     read_state_from_state_interfaces(last_commanded_state_);
   }
-  // reset/zero out all of the PID's (The integral term is not retained and reset to zero)
-  // for (auto & pid : pids_)
-  // {
-  //   pid->reset();
-  // }
 
   // The controller should start by holding position at the beginning of active state
   add_new_trajectory_msg(set_hold_position());
@@ -1089,14 +1051,6 @@ bool JointTrajectoryController::reset()
 {
   subscriber_is_active_ = false;
   joint_command_subscriber_.reset();
-
-  // for (const auto & pid : pids_)
-  // {
-  //   if (pid)
-  //   {
-  //     pid->reset();
-  //   }
-  // }
 
   traj_external_point_ptr_.reset();
 
@@ -1321,7 +1275,7 @@ void JointTrajectoryController::fill_partial_goal(
 
       for (auto & it : trajectory_msg->points)
       {
-        // Assume hold position with 0 velocity and acceleration for missing joints
+        // Assume hold position with 0 velocity and effort for missing joints
         if (!it.positions.empty())
         {
           if (
@@ -1508,7 +1462,7 @@ bool JointTrajectoryController::validate_trajectory_msg(
 
     const size_t joint_count = trajectory.joint_names.size();
     const auto & points = trajectory.points;
-    // This currently supports only position, velocity and acceleration inputs
+    // This currently supports only position, velocity and effort inputs
     if (params_.allow_integration_in_goal_trajectories)
     {
       if (
@@ -1543,13 +1497,13 @@ bool JointTrajectoryController::validate_trajectory_msg(
     {
       return false;
     }
-    // reject effort entries
-    if (!points[i].effort.empty())
-    {
-      RCLCPP_ERROR(
-        get_node()->get_logger(), "Trajectories with effort fields are currently not supported.");
-      return false;
-    }
+    // // reject effort entries
+    // if (!points[i].effort.empty())
+    // {
+    //   RCLCPP_ERROR(
+    //     get_node()->get_logger(), "Trajectories with effort fields are currently not supported.");
+    //   return false;
+    // }
   }
   return true;
 }
@@ -1589,7 +1543,7 @@ std::shared_ptr<trajectory_msgs::msg::JointTrajectory>
 JointTrajectoryController::set_success_trajectory_point()
 {
   // set last command to be repeated at success, no matter if it has nonzero velocity or
-  // acceleration
+  // effort
   hold_position_msg_ptr_->points[0] = traj_external_point_ptr_->get_trajectory_msg()->points.back();
   hold_position_msg_ptr_->points[0].time_from_start = rclcpp::Duration(0, 0);
 
@@ -1645,39 +1599,6 @@ bool JointTrajectoryController::has_active_trajectory() const
 {
   return traj_external_point_ptr_ != nullptr && traj_external_point_ptr_->has_trajectory_msg();
 }
-
-// void JointTrajectoryController::update_pids()
-// {
-//   for (size_t i = 0; i < dof_; ++i)
-//   {
-//     const auto & gains = params_.gains.joints_map.at(params_.joints[i]);
-//     if (pids_[i])
-//     {
-//       // update PIDs with gains from ROS parameters
-//       pids_[i]->setGains(gains.p, gains.i, gains.d, gains.i_clamp, -gains.i_clamp);
-//     }
-//     else
-//     {
-//       // Init PIDs with gains from ROS parameters
-//       pids_[i] = std::make_shared<control_toolbox::Pid>(
-//         gains.p, gains.i, gains.d, gains.i_clamp, -gains.i_clamp);
-//     }
-//     // Check deprecated style for "ff_velocity_scale" parameter definition.
-//     if (gains.ff_velocity_scale == 0.0)
-//     {
-//       RCLCPP_WARN(
-//         get_node()->get_logger(),
-//         "'ff_velocity_scale' parameters is not defined under 'gains.<joint_name>.' structure. "
-//         "Maybe you are using deprecated format 'ff_velocity_scale/<joint_name>'!");
-//
-//       ff_velocity_scale_[i] = auto_declare<double>("ff_velocity_scale/" + params_.joints[i], 0.0);
-//     }
-//     else
-//     {
-//       ff_velocity_scale_[i] = gains.ff_velocity_scale;
-//     }
-//   }
-// }
 
 void JointTrajectoryController::init_hold_position_msg()
 {
