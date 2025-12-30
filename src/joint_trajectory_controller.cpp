@@ -1497,13 +1497,6 @@ bool JointTrajectoryController::validate_trajectory_msg(
     {
       return false;
     }
-    // // reject effort entries
-    // if (!points[i].effort.empty())
-    // {
-    //   RCLCPP_ERROR(
-    //     get_node()->get_logger(), "Trajectories with effort fields are currently not supported.");
-    //   return false;
-    // }
   }
   return true;
 }
@@ -1584,10 +1577,6 @@ void JointTrajectoryController::resize_joint_trajectory_point_command(
   if (has_velocity_command_interface_)
   {
     point.velocities.resize(size, 0.0);
-  }
-  if (has_effort_command_interface_)
-  {
-    point.effort.resize(size, 0.0);
   }
   if (has_effort_command_interface_)
   {

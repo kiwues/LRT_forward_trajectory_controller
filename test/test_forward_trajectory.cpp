@@ -676,3 +676,126 @@ TEST_F(TrajectoryInterpolationTest, return_motion_with_effort)
 
   executor.cancel();
 }
+//=============================================================================
+// TEST 8: Position + Effort Command Interface (No Velocity Command)
+// Checks if controller handles missing velocity command interface correctly
+//=============================================================================
+TEST_F(TrajectoryInterpolationTest, position_effort_command_only)
+{
+  command_interface_types_ = {"position", "effort"};
+  state_interface_types_ = {"position", "velocity", "effort"};
+  test_config_name_ = "POS_EFFORT_COMMAND_ONLY";
+  interpolation_method_ = "splines";
+
+  rclcpp::executors::MultiThreadedExecutor executor;
+  std::vector<rclcpp::Parameter> params;
+  params.emplace_back("open_loop_control", true);
+
+  SetUpAndActivateTrajectoryController(executor, params);
+
+  input_times_ = {0.0, 1.0, 2.0};
+  input_positions_ = {
+    {0.0, 0.0, 0.0},
+    {1.0, 1.0, 1.0},
+    {2.0, 2.0, 2.0}
+  };
+  input_velocities_ = {
+    {0.0, 0.0, 0.0},
+    {1.0, 1.0, 1.0},
+    {0.0, 0.0, 0.0}
+  };
+  input_efforts_ = {
+    {0.0, 0.0, 0.0},
+    {5.0, 5.0, 5.0},
+    {0.0, 0.0, 0.0}
+  };
+
+  trajectory_msgs::msg::JointTrajectory traj_msg;
+  traj_msg.joint_names = joint_names_;
+  traj_msg.header.stamp = rclcpp::Time(0, 0);
+
+  for (size_t i = 0; i < input_positions_.size(); ++i)
+  {
+    trajectory_msgs::msg::JointTrajectoryPoint point;
+    point.positions = input_positions_[i];
+    point.velocities = input_velocities_[i];
+    point.effort = input_efforts_[i];
+    point.time_from_start = rclcpp::Duration::from_seconds(input_times_[i]);
+    traj_msg.points.push_back(point);
+  }
+
+  trajectory_publisher_->publish(traj_msg);
+  traj_controller_->wait_for_trajectory(executor);
+
+  print_log_header();
+  print_input_trajectory();
+  // Symulacja trwa 2.2s. Próbka w połowie to 1.1s.
+  run_trajectory_with_logging(executor, 2.2, NUM_SAMPLES);
+  print_sampled_trajectory();
+  print_log_footer();
+
+  // POPRAWKA: W czasie 1.1s (10% drogi między t=1 a t=2) moment spada z 5.0 do 0.0.
+  // Wartość oczekiwana: 5.0 - (5.0 * 0.1) = 4.5
+  EXPECT_NEAR(4.5, logged_data_[NUM_SAMPLES/2].command_efforts[0], 0.1); 
+  
+  executor.cancel();
+}
+
+//=============================================================================
+// TEST 9: Sparse Input (Position + Effort only, No Velocity in MSG)
+// Checks linear interpolation fallback for Position and linear for Effort
+//=============================================================================
+TEST_F(TrajectoryInterpolationTest, input_pos_effort_no_vel_msg)
+{
+  command_interface_types_ = {"position", "velocity", "effort"};
+  state_interface_types_ = {"position", "velocity", "effort"};
+  test_config_name_ = "INPUT_POS_EFF_NO_VEL";
+  interpolation_method_ = "splines"; // Powinno spaść do liniowej
+
+  rclcpp::executors::MultiThreadedExecutor executor;
+  std::vector<rclcpp::Parameter> params;
+  params.emplace_back("open_loop_control", true);
+
+  SetUpAndActivateTrajectoryController(executor, params);
+
+  input_times_ = {0.0, 2.0};
+  input_positions_ = {
+    {0.0, 0.0, 0.0},
+    {2.0, 2.0, 2.0}
+  };
+  // CELOWO BRAK VELOCITIES
+  input_velocities_ = {}; 
+  input_efforts_ = {
+    {0.0, 0.0, 0.0},
+    {10.0, 10.0, 10.0}
+  };
+
+  trajectory_msgs::msg::JointTrajectory traj_msg;
+  traj_msg.joint_names = joint_names_;
+  traj_msg.header.stamp = rclcpp::Time(0, 0);
+
+  for (size_t i = 0; i < input_positions_.size(); ++i)
+  {
+    trajectory_msgs::msg::JointTrajectoryPoint point;
+    point.positions = input_positions_[i];
+    point.effort = input_efforts_[i];
+    point.time_from_start = rclcpp::Duration::from_seconds(input_times_[i]);
+    traj_msg.points.push_back(point);
+  }
+
+  trajectory_publisher_->publish(traj_msg);
+  traj_controller_->wait_for_trajectory(executor);
+
+  print_log_header();
+  print_input_trajectory();
+  // Symulacja trwa 2.2s. Próbka w połowie to 1.1s.
+  run_trajectory_with_logging(executor, 2.2, NUM_SAMPLES);
+  print_sampled_trajectory();
+  print_log_footer();
+
+  // POPRAWKA: Interpolacja liniowa od 0 do 10 w czasie 2s.
+  // W czasie 1.1s wartość powinna wynosić: 10 * (1.1 / 2.0) = 5.5
+  EXPECT_NEAR(5.5, logged_data_[NUM_SAMPLES/2].command_efforts[0], 0.1);
+
+  executor.cancel();
+}
