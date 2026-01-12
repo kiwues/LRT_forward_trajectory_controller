@@ -30,8 +30,8 @@ class TrajectoryInterpolationTest : public TrajectoryControllerTest
 public:
   void SetUp() override
   {
-    TrajectoryControllerTest:: SetUp();
-    logged_data_. clear();
+    TrajectoryControllerTest::SetUp();
+    logged_data_.clear();
   }
 
   struct TrajectoryLogEntry
@@ -52,12 +52,12 @@ public:
   };
 
   std::vector<TrajectoryLogEntry> logged_data_;
-  std::vector<std::vector<double>> input_positions_;
-  std::vector<std::vector<double>> input_velocities_;
-  std:: vector<std::vector<double>> input_efforts_;
-  std:: vector<double> input_times_;
-  std::string test_config_name_;
-  std::string interpolation_method_;
+    std::vector<std::vector<double>> input_positions_;
+    std::vector<std::vector<double>> input_velocities_;
+    std::vector<std::vector<double>> input_efforts_;
+    std::vector<double> input_times_;
+    std::string test_config_name_;
+    std::string interpolation_method_;
 
   void log_current_state(double time_sec)
   {
@@ -69,7 +69,7 @@ public:
     auto state_err = traj_controller_->get_state_error();
 
     entry.reference_positions = state_ref.positions;
-    entry.reference_velocities = state_ref. velocities;
+    entry.reference_velocities = state_ref.velocities;
     entry.reference_accelerations = state_ref.accelerations;
     entry.reference_efforts = state_ref.effort;
 
@@ -125,10 +125,10 @@ public:
       }
       std::cout << "\n";
 
-      if (p < input_velocities_.size() && ! input_velocities_[p]. empty())
+      if (p < input_velocities_.size() && !input_velocities_[p].empty())
       {
         std::cout << "  VELOCITIES: ";
-        for (size_t j = 0; j < input_velocities_[p]. size(); ++j)
+        for (size_t j = 0; j < input_velocities_[p].size(); ++j)
         {
           if (j > 0) std::cout << ",";
           std::cout << std::fixed << std::setprecision(6) << input_velocities_[p][j];
@@ -171,7 +171,7 @@ public:
       std::cout << "\n";
 
       // Reference velocity
-      if (!entry.reference_velocities. empty())
+      if (!entry.reference_velocities.empty())
       {
         std::cout << "  VEL: ";
         for (size_t j = 0; j < entry.reference_velocities.size(); ++j)
@@ -226,7 +226,7 @@ public:
 
       // Command effort
       std::cout << "  CMD_EFF: ";
-      for (size_t j = 0; j < entry.command_efforts. size(); ++j)
+      for (size_t j = 0; j < entry.command_efforts.size(); ++j)
       {
         if (j > 0) std::cout << ",";
         std::cout << std::fixed << std::setprecision(6) << entry.command_efforts[j];
@@ -238,13 +238,13 @@ public:
       for (size_t j = 0; j < entry.feedback_positions.size(); ++j)
       {
         if (j > 0) std::cout << ",";
-        std::cout << std:: fixed << std::setprecision(6) << entry.feedback_positions[j];
+        std::cout << std::fixed << std::setprecision(6) << entry.feedback_positions[j];
       }
       std::cout << "\n";
 
       // Position error
       std::cout << "  ERR_POS: ";
-      for (size_t j = 0; j < entry. error_positions.size(); ++j)
+      for (size_t j = 0; j < entry.error_positions.size(); ++j)
       {
         if (j > 0) std::cout << ",";
         std::cout << std::fixed << std::setprecision(6) << entry.error_positions[j];
