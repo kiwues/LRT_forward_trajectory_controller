@@ -241,27 +241,27 @@ def plot_comparison(case_name: str, logs_dict: Dict[str, TrajectoryLog], joint_i
     if linear_log:
         linear_data = extract_data(linear_log, joint_idx)
         if linear_data:
-            axes[0].plot(linear_data['times'], linear_data['pos'], '--', color=color_pos, 
-                        linewidth=2, label='Linear', alpha=0.8)
-            axes[1].plot(linear_data['times'], linear_data['vel'], '--', color=color_vel, 
-                        linewidth=2, label='Linear', alpha=0.8)
-            axes[2].plot(linear_data['times'], linear_data['acc'], '--', color=color_acc, 
-                        linewidth=2, label='Linear', alpha=0.8)
-            axes[3].plot(linear_data['times'], linear_data['eff'], '--', color=color_eff, 
-                        linewidth=2, label='Linear', alpha=0.8)
+            axes[0].plot(linear_data['times'], linear_data['pos'], ':', color=color_pos, 
+                        linewidth=3, label='Linear', alpha=0.9)
+            axes[1].plot(linear_data['times'], linear_data['vel'], ':', color=color_vel, 
+                        linewidth=3, label='Linear', alpha=0.9)
+            axes[2].plot(linear_data['times'], linear_data['acc'], ':', color=color_acc, 
+                        linewidth=3, label='Linear', alpha=0.9)
+            axes[3].plot(linear_data['times'], linear_data['eff'], ':', color=color_eff, 
+                        linewidth=3, label='Linear', alpha=0.9)
     
     # Plot spline interpolation (if available)
     if spline_log:
         spline_data = extract_data(spline_log, joint_idx)
         if spline_data:
             axes[0].plot(spline_data['times'], spline_data['pos'], '-', color=color_pos, 
-                        linewidth=2, label='Spline')
+                        linewidth=2.5, label='Spline')
             axes[1].plot(spline_data['times'], spline_data['vel'], '-', color=color_vel, 
-                        linewidth=2, label='Spline')
+                        linewidth=2.5, label='Spline')
             axes[2].plot(spline_data['times'], spline_data['acc'], '-', color=color_acc, 
-                        linewidth=2, label='Spline')
+                        linewidth=2.5, label='Spline')
             axes[3].plot(spline_data['times'], spline_data['eff'], '-', color=color_eff, 
-                        linewidth=2, label='Spline')
+                        linewidth=2.5, label='Spline')
     
     # Add waypoint markers (using reference data)
     if len(ref_data['input_times']) > 0:
@@ -283,24 +283,24 @@ def plot_comparison(case_name: str, logs_dict: Dict[str, TrajectoryLog], joint_i
                            edgecolors='black', linewidths=1.5, zorder=5, label='Specified')
     
     # Configure axes
-    axes[0].set_ylabel('Position [rad]', fontsize=11, fontweight='bold')
+    axes[0].set_ylabel('Position', fontsize=11, fontweight='bold')
     axes[0].legend(loc='upper right', fontsize=10)
     axes[0].grid(True, alpha=0.3)
     axes[0].set_title('Position', fontsize=11, loc='left', fontweight='bold')
     
-    axes[1].set_ylabel('Velocity [rad/s]', fontsize=11, fontweight='bold')
+    axes[1].set_ylabel('Velocity', fontsize=11, fontweight='bold')
     axes[1].axhline(y=0, color='gray', linestyle='--', linewidth=0.5)
     axes[1].legend(loc='upper right', fontsize=10)
     axes[1].grid(True, alpha=0.3)
     axes[1].set_title('Velocity', fontsize=11, loc='left', fontweight='bold')
     
-    axes[2].set_ylabel('Acceleration [rad/s²]', fontsize=11, fontweight='bold')
+    axes[2].set_ylabel('Acceleration', fontsize=11, fontweight='bold')
     axes[2].axhline(y=0, color='gray', linestyle='--', linewidth=0.5)
     axes[2].legend(loc='upper right', fontsize=10)
     axes[2].grid(True, alpha=0.3)
     axes[2].set_title('Acceleration', fontsize=11, loc='left', fontweight='bold')
     
-    axes[3].set_ylabel('Effort [Nm]', fontsize=11, fontweight='bold')
+    axes[3].set_ylabel('Effort', fontsize=11, fontweight='bold')
     axes[3].set_xlabel('Time [s]', fontsize=11, fontweight='bold')
     axes[3].axhline(y=0, color='gray', linestyle='--', linewidth=0.5)
     axes[3].legend(loc='upper right', fontsize=10)
