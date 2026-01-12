@@ -568,7 +568,7 @@ TEST_F(TrajectoryInterpolationTest, case5_position_only)
   input_efforts_ = {};     // No efforts
 
   command_interface_types_ = {"position"};
-  state_interface_types_ = {"position", "velocity"};
+  state_interface_types_ = {"position", "velocity", "effort"};
   test_config_name_ = "case5_position_only";
   interpolation_method_ = "linear";
 
@@ -625,7 +625,7 @@ TEST_F(TrajectoryInterpolationTest, case6_velocity_only)
   input_efforts_ = {};  // No efforts
 
   command_interface_types_ = {"position", "velocity"};
-  state_interface_types_ = {"position", "velocity"};
+  state_interface_types_ = {"position", "velocity", "effort"};
   test_config_name_ = "case6_velocity_only";
   interpolation_method_ = "linear";
 
