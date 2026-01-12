@@ -271,6 +271,7 @@ void Trajectory::interpolate_between_points(
 
       output.positions[i] = t[0] * coefficients[0] + t[1] * coefficients[1];
       output.velocities[i] = t[0] * coefficients[1];
+      output.accelerations[i] = 0.0;  // Linear interpolation has zero acceleration
     }
   }
   else if (has_velocity && !has_accel)
