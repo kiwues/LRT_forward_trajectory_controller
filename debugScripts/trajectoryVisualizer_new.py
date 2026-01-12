@@ -210,16 +210,9 @@ def extract_data(log: TrajectoryLog, joint_idx: int = 0):
 
 def plot_comparison(case_name: str, logs_dict: Dict[str, TrajectoryLog], joint_idx: int = 0, save_path: Optional[str] = None):
     """
-    Plot linear and spline interpolation comparison for a single test case.
-    Shows 4 subplots: Position, Velocity, Acceleration, Effort.
+    Plot linear and spline interpolation in SEPARATE side-by-side figures.
+    Each figure shows 4 subplots: Position, Velocity, Acceleration, Effort.
     """
-    fig, axes = plt.subplots(4, 1, figsize=(12, 10), sharex=True)
-    fig.suptitle(f'{case_name} - Interpolation Comparison (Joint {joint_idx})', 
-                 fontsize=14, fontweight='bold')
-    
-    # Color scheme for waypoint markers
-    color_waypoint = 'black'  # Black for clear visibility
-    
     linear_log = logs_dict.get('linear')
     spline_log = logs_dict.get('splines')
     
@@ -233,82 +226,104 @@ def plot_comparison(case_name: str, logs_dict: Dict[str, TrajectoryLog], joint_i
     if ref_data is None:
         return None
     
-    # Plot spline interpolation FIRST (so it's in background if lines overlap)
-    if spline_log:
-        spline_data = extract_data(spline_log, joint_idx)
-        if spline_data:
-            # Use solid line with blue color for spline
-            axes[0].plot(spline_data['times'], spline_data['pos'], '-', color='blue', 
-                        linewidth=2, label='Spline', alpha=0.7)
-            axes[1].plot(spline_data['times'], spline_data['vel'], '-', color='blue', 
-                        linewidth=2, label='Spline', alpha=0.7)
-            axes[2].plot(spline_data['times'], spline_data['acc'], '-', color='blue', 
-                        linewidth=2, label='Spline', alpha=0.7)
-            axes[3].plot(spline_data['times'], spline_data['eff'], '-', color='blue', 
-                        linewidth=2, label='Spline', alpha=0.7)
+    # Create figure with 2 columns (Linear and Spline), 4 rows (Pos, Vel, Acc, Eff)
+    fig, axes = plt.subplots(4, 2, figsize=(16, 12), sharex='col')
+    fig.suptitle(f'{case_name} - Interpolation Comparison (Joint {joint_idx})', 
+                 fontsize=16, fontweight='bold')
     
-    # Plot linear interpolation SECOND (so it's on top and visible even if overlapping)
+    # Color scheme
+    color_waypoint = 'black'  # Black for clear visibility
+    color_line = 'blue'  # Blue for trajectory lines
+    
+    # Column titles
+    axes[0, 0].set_title('Linear Interpolation', fontsize=13, fontweight='bold', pad=10)
+    axes[0, 1].set_title('Spline Interpolation', fontsize=13, fontweight='bold', pad=10)
+    
+    # Row labels
+    row_labels = ['Position', 'Velocity', 'Acceleration', 'Effort']
+    
+    # Plot LINEAR interpolation (left column)
     if linear_log:
         linear_data = extract_data(linear_log, joint_idx)
         if linear_data:
-            # Use prominent dashed line with red color for linear
-            axes[0].plot(linear_data['times'], linear_data['pos'], '--', color='red', 
-                        linewidth=3, label='Linear', alpha=0.9, dashes=[10, 5])
-            axes[1].plot(linear_data['times'], linear_data['vel'], '--', color='red', 
-                        linewidth=3, label='Linear', alpha=0.9, dashes=[10, 5])
-            axes[2].plot(linear_data['times'], linear_data['acc'], '--', color='red', 
-                        linewidth=3, label='Linear', alpha=0.9, dashes=[10, 5])
-            axes[3].plot(linear_data['times'], linear_data['eff'], '--', color='red', 
-                        linewidth=3, label='Linear', alpha=0.9, dashes=[10, 5])
+            # Position
+            axes[0, 0].plot(linear_data['times'], linear_data['pos'], '-', color=color_line, linewidth=2.5)
+            axes[0, 0].scatter(ref_data['input_times'], ref_data['input_pos'], 
+                              color=color_waypoint, s=100, marker='o', 
+                              edgecolors='white', linewidths=2, zorder=5, label='Waypoints')
+            
+            # Velocity
+            axes[1, 0].plot(linear_data['times'], linear_data['vel'], '-', color=color_line, linewidth=2.5)
+            if ref_data['has_input_vel']:
+                axes[1, 0].scatter(ref_data['input_times'], ref_data['input_vel'], 
+                                  color=color_waypoint, s=100, marker='^', 
+                                  edgecolors='white', linewidths=2, zorder=5, label='Specified')
+            
+            # Acceleration
+            axes[2, 0].plot(linear_data['times'], linear_data['acc'], '-', color=color_line, linewidth=2.5)
+            
+            # Effort
+            axes[3, 0].plot(linear_data['times'], linear_data['eff'], '-', color=color_line, linewidth=2.5)
+            if ref_data['has_input_eff']:
+                axes[3, 0].scatter(ref_data['input_times'], ref_data['input_eff'], 
+                                  color=color_waypoint, s=100, marker='s', 
+                                  edgecolors='white', linewidths=2, zorder=5, label='Specified')
     
-    # Add waypoint markers (using reference data)
-    if len(ref_data['input_times']) > 0:
-        # Position waypoints (always shown)
-        axes[0].scatter(ref_data['input_times'], ref_data['input_pos'], 
-                       color=color_waypoint, s=100, marker='o', 
-                       edgecolors='black', linewidths=1.5, zorder=5, label='Waypoints')
-        
-        # Velocity waypoints (only if specified)
-        if ref_data['has_input_vel']:
-            axes[1].scatter(ref_data['input_times'], ref_data['input_vel'], 
-                           color=color_waypoint, s=100, marker='^', 
-                           edgecolors='black', linewidths=1.5, zorder=5, label='Specified')
-        
-        # Effort waypoints (only if specified)
-        if ref_data['has_input_eff']:
-            axes[3].scatter(ref_data['input_times'], ref_data['input_eff'], 
-                           color=color_waypoint, s=100, marker='s', 
-                           edgecolors='black', linewidths=1.5, zorder=5, label='Specified')
+    # Plot SPLINE interpolation (right column)
+    if spline_log:
+        spline_data = extract_data(spline_log, joint_idx)
+        if spline_data:
+            # Position
+            axes[0, 1].plot(spline_data['times'], spline_data['pos'], '-', color=color_line, linewidth=2.5)
+            axes[0, 1].scatter(ref_data['input_times'], ref_data['input_pos'], 
+                              color=color_waypoint, s=100, marker='o', 
+                              edgecolors='white', linewidths=2, zorder=5, label='Waypoints')
+            
+            # Velocity
+            axes[1, 1].plot(spline_data['times'], spline_data['vel'], '-', color=color_line, linewidth=2.5)
+            if ref_data['has_input_vel']:
+                axes[1, 1].scatter(ref_data['input_times'], ref_data['input_vel'], 
+                                  color=color_waypoint, s=100, marker='^', 
+                                  edgecolors='white', linewidths=2, zorder=5, label='Specified')
+            
+            # Acceleration
+            axes[2, 1].plot(spline_data['times'], spline_data['acc'], '-', color=color_line, linewidth=2.5)
+            
+            # Effort
+            axes[3, 1].plot(spline_data['times'], spline_data['eff'], '-', color=color_line, linewidth=2.5)
+            if ref_data['has_input_eff']:
+                axes[3, 1].scatter(ref_data['input_times'], ref_data['input_eff'], 
+                                  color=color_waypoint, s=100, marker='s', 
+                                  edgecolors='white', linewidths=2, zorder=5, label='Specified')
     
-    # Configure axes
-    axes[0].set_ylabel('Position', fontsize=11, fontweight='bold')
-    axes[0].legend(loc='upper right', fontsize=10)
-    axes[0].grid(True, alpha=0.3)
-    axes[0].set_title('Position', fontsize=11, loc='left', fontweight='bold')
-    
-    axes[1].set_ylabel('Velocity', fontsize=11, fontweight='bold')
-    axes[1].axhline(y=0, color='gray', linestyle='--', linewidth=0.5)
-    axes[1].legend(loc='upper right', fontsize=10)
-    axes[1].grid(True, alpha=0.3)
-    axes[1].set_title('Velocity', fontsize=11, loc='left', fontweight='bold')
-    
-    axes[2].set_ylabel('Acceleration', fontsize=11, fontweight='bold')
-    axes[2].axhline(y=0, color='gray', linestyle='--', linewidth=0.5)
-    axes[2].legend(loc='upper right', fontsize=10)
-    axes[2].grid(True, alpha=0.3)
-    axes[2].set_title('Acceleration', fontsize=11, loc='left', fontweight='bold')
-    
-    axes[3].set_ylabel('Effort', fontsize=11, fontweight='bold')
-    axes[3].set_xlabel('Time [s]', fontsize=11, fontweight='bold')
-    axes[3].axhline(y=0, color='gray', linestyle='--', linewidth=0.5)
-    axes[3].legend(loc='upper right', fontsize=10)
-    axes[3].grid(True, alpha=0.3)
-    axes[3].set_title('Effort', fontsize=11, loc='left', fontweight='bold')
-    
-    # Add vertical lines at waypoint times
-    for t in ref_data['input_times']:
-        for ax in axes:
-            ax.axvline(x=t, color='gray', linestyle=':', alpha=0.4)
+    # Configure all axes
+    for row_idx in range(4):
+        for col_idx in range(2):
+            ax = axes[row_idx, col_idx]
+            
+            # Y-axis label (only on left column)
+            if col_idx == 0:
+                ax.set_ylabel(row_labels[row_idx], fontsize=11, fontweight='bold')
+            
+            # X-axis label (only on bottom row)
+            if row_idx == 3:
+                ax.set_xlabel('Time [s]', fontsize=11, fontweight='bold')
+            
+            # Grid
+            ax.grid(True, alpha=0.3)
+            
+            # Zero reference line for velocity, acceleration, and effort
+            if row_idx > 0:
+                ax.axhline(y=0, color='gray', linestyle='--', linewidth=0.5, alpha=0.5)
+            
+            # Vertical lines at waypoint times
+            for t in ref_data['input_times']:
+                ax.axvline(x=t, color='gray', linestyle=':', alpha=0.3)
+            
+            # Legend (if there are markers)
+            handles, labels = ax.get_legend_handles_labels()
+            if handles:
+                ax.legend(loc='upper right', fontsize=9)
     
     plt.tight_layout()
     
