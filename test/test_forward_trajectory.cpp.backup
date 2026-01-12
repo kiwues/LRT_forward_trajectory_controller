@@ -369,41 +369,82 @@ TEST_F(TrajectoryInterpolationTest, case2_position_velocity_effort)
     {0.0, 0.0, 0.0}
   };
 
-  command_interface_types_ = {"position", "velocity", "effort"};
-  state_interface_types_ = {"position", "velocity", "effort"};
-  test_config_name_ = "case2_position_velocity_effort";
-  interpolation_method_ = "linear";
-
-  rclcpp::executors::MultiThreadedExecutor executor;
-  std::vector<rclcpp::Parameter> params;
-  params.emplace_back("open_loop_control", true);
-  SetUpAndActivateTrajectoryController(executor, params);
-
-  trajectory_msgs::msg::JointTrajectory traj_msg;
-  traj_msg.joint_names = joint_names_;
-  traj_msg.header.stamp = rclcpp::Time(0, 0);
-
-  for (size_t i = 0; i < input_positions_.size(); ++i)
+  // Run with LINEAR interpolation
   {
-    trajectory_msgs::msg::JointTrajectoryPoint point;
-    point.positions = input_positions_[i];
-    point.velocities = input_velocities_[i];
-    point.effort = input_efforts_[i];
-    point.time_from_start = rclcpp::Duration::from_seconds(input_times_[i]);
-    traj_msg.points.push_back(point);
+    command_interface_types_ = {"position", "velocity", "effort"};
+    state_interface_types_ = {"position", "velocity", "effort"};
+    test_config_name_ = "case2_position_velocity_effort";
+    interpolation_method_ = "linear";
+
+    rclcpp::executors::MultiThreadedExecutor executor;
+    std::vector<rclcpp::Parameter> params;
+    params.emplace_back("open_loop_control", true);
+    SetUpAndActivateTrajectoryController(executor, params);
+
+    trajectory_msgs::msg::JointTrajectory traj_msg;
+    traj_msg.joint_names = joint_names_;
+    traj_msg.header.stamp = rclcpp::Time(0, 0);
+
+    for (size_t i = 0; i < input_positions_.size(); ++i)
+    {
+      trajectory_msgs::msg::JointTrajectoryPoint point;
+      point.positions = input_positions_[i];
+      point.velocities = input_velocities_[i];
+      point.effort = input_efforts_[i];
+      point.time_from_start = rclcpp::Duration::from_seconds(input_times_[i]);
+      traj_msg.points.push_back(point);
+    }
+
+    trajectory_publisher_->publish(traj_msg);
+    traj_controller_->wait_for_trajectory(executor);
+
+    print_log_header();
+    print_input_trajectory();
+    run_trajectory_with_logging(executor, 2.2, NUM_SAMPLES);
+    print_sampled_trajectory();
+    print_log_footer();
+
+    executor.cancel();
   }
 
-  trajectory_publisher_->publish(traj_msg);
-  traj_controller_->wait_for_trajectory(executor);
+  // Run with SPLINE interpolation
+  {
+    command_interface_types_ = {"position", "velocity", "effort"};
+    state_interface_types_ = {"position", "velocity", "effort"};
+    test_config_name_ = "case2_position_velocity_effort";
+    interpolation_method_ = "splines";
 
-  print_log_header();
-  print_input_trajectory();
-  run_trajectory_with_logging(executor, 2.2, NUM_SAMPLES);
-  print_sampled_trajectory();
-  print_log_footer();
+    rclcpp::executors::MultiThreadedExecutor executor;
+    std::vector<rclcpp::Parameter> params;
+    params.emplace_back("open_loop_control", true);
+    SetUpAndActivateTrajectoryController(executor, params);
 
-  executor.cancel();
+    trajectory_msgs::msg::JointTrajectory traj_msg;
+    traj_msg.joint_names = joint_names_;
+    traj_msg.header.stamp = rclcpp::Time(0, 0);
 
+    for (size_t i = 0; i < input_positions_.size(); ++i)
+    {
+      trajectory_msgs::msg::JointTrajectoryPoint point;
+      point.positions = input_positions_[i];
+      point.velocities = input_velocities_[i];
+      point.effort = input_efforts_[i];
+      point.time_from_start = rclcpp::Duration::from_seconds(input_times_[i]);
+      traj_msg.points.push_back(point);
+    }
+
+    trajectory_publisher_->publish(traj_msg);
+    traj_controller_->wait_for_trajectory(executor);
+
+    print_log_header();
+    print_input_trajectory();
+    run_trajectory_with_logging(executor, 2.2, NUM_SAMPLES);
+    print_sampled_trajectory();
+    print_log_footer();
+
+    EXPECT_NEAR(2.0, logged_data_.back().command_positions[0], EPS);
+    executor.cancel();
+  }
 }
 
 //=============================================================================
@@ -436,41 +477,82 @@ TEST_F(TrajectoryInterpolationTest, case3_velocity_effort)
     {0.0, 0.0, 0.0}
   };
 
-  command_interface_types_ = {"position", "velocity", "effort"};
-  state_interface_types_ = {"position", "velocity", "effort"};
-  test_config_name_ = "case3_velocity_effort";
-  interpolation_method_ = "linear";
-
-  rclcpp::executors::MultiThreadedExecutor executor;
-  std::vector<rclcpp::Parameter> params;
-  params.emplace_back("open_loop_control", true);
-  SetUpAndActivateTrajectoryController(executor, params);
-
-  trajectory_msgs::msg::JointTrajectory traj_msg;
-  traj_msg.joint_names = joint_names_;
-  traj_msg.header.stamp = rclcpp::Time(0, 0);
-
-  for (size_t i = 0; i < input_positions_.size(); ++i)
+  // Run with LINEAR interpolation
   {
-    trajectory_msgs::msg::JointTrajectoryPoint point;
-    point.positions = input_positions_[i];
-    point.velocities = input_velocities_[i];
-    point.effort = input_efforts_[i];
-    point.time_from_start = rclcpp::Duration::from_seconds(input_times_[i]);
-    traj_msg.points.push_back(point);
+    command_interface_types_ = {"position", "velocity", "effort"};
+    state_interface_types_ = {"position", "velocity", "effort"};
+    test_config_name_ = "case3_velocity_effort";
+    interpolation_method_ = "linear";
+
+    rclcpp::executors::MultiThreadedExecutor executor;
+    std::vector<rclcpp::Parameter> params;
+    params.emplace_back("open_loop_control", true);
+    SetUpAndActivateTrajectoryController(executor, params);
+
+    trajectory_msgs::msg::JointTrajectory traj_msg;
+    traj_msg.joint_names = joint_names_;
+    traj_msg.header.stamp = rclcpp::Time(0, 0);
+
+    for (size_t i = 0; i < input_positions_.size(); ++i)
+    {
+      trajectory_msgs::msg::JointTrajectoryPoint point;
+      point.positions = input_positions_[i];
+      point.velocities = input_velocities_[i];
+      point.effort = input_efforts_[i];
+      point.time_from_start = rclcpp::Duration::from_seconds(input_times_[i]);
+      traj_msg.points.push_back(point);
+    }
+
+    trajectory_publisher_->publish(traj_msg);
+    traj_controller_->wait_for_trajectory(executor);
+
+    print_log_header();
+    print_input_trajectory();
+    run_trajectory_with_logging(executor, 2.2, NUM_SAMPLES);
+    print_sampled_trajectory();
+    print_log_footer();
+
+    executor.cancel();
   }
 
-  trajectory_publisher_->publish(traj_msg);
-  traj_controller_->wait_for_trajectory(executor);
+  // Run with SPLINE interpolation  
+  {
+    command_interface_types_ = {"position", "velocity", "effort"};
+    state_interface_types_ = {"position", "velocity", "effort"};
+    test_config_name_ = "case3_velocity_effort";
+    interpolation_method_ = "splines";
 
-  print_log_header();
-  print_input_trajectory();
-  run_trajectory_with_logging(executor, 2.2, NUM_SAMPLES);
-  print_sampled_trajectory();
-  print_log_footer();
+    rclcpp::executors::MultiThreadedExecutor executor;
+    std::vector<rclcpp::Parameter> params;
+    params.emplace_back("open_loop_control", true);
+    SetUpAndActivateTrajectoryController(executor, params);
 
-  executor.cancel();
+    trajectory_msgs::msg::JointTrajectory traj_msg;
+    traj_msg.joint_names = joint_names_;
+    traj_msg.header.stamp = rclcpp::Time(0, 0);
 
+    for (size_t i = 0; i < input_positions_.size(); ++i)
+    {
+      trajectory_msgs::msg::JointTrajectoryPoint point;
+      point.positions = input_positions_[i];
+      point.velocities = input_velocities_[i];
+      point.effort = input_efforts_[i];
+      point.time_from_start = rclcpp::Duration::from_seconds(input_times_[i]);
+      traj_msg.points.push_back(point);
+    }
+
+    trajectory_publisher_->publish(traj_msg);
+    traj_controller_->wait_for_trajectory(executor);
+
+    print_log_header();
+    print_input_trajectory();
+    run_trajectory_with_logging(executor, 2.2, NUM_SAMPLES);
+    print_sampled_trajectory();
+    print_log_footer();
+
+    EXPECT_NEAR(2.0, logged_data_.back().command_positions[0], EPS);
+    executor.cancel();
+  }
 }
 
 //=============================================================================
@@ -510,286 +592,83 @@ TEST_F(TrajectoryInterpolationTest, case4_position_velocity_acceleration_effort)
     {0.0, 0.0, 0.0}
   };
 
-  command_interface_types_ = {"position", "velocity", "effort"};
-  state_interface_types_ = {"position", "velocity", "effort"};
-  test_config_name_ = "case4_position_velocity_acceleration_effort";
-  interpolation_method_ = "linear";
-
-  rclcpp::executors::MultiThreadedExecutor executor;
-  std::vector<rclcpp::Parameter> params;
-  params.emplace_back("open_loop_control", true);
-  SetUpAndActivateTrajectoryController(executor, params);
-
-  trajectory_msgs::msg::JointTrajectory traj_msg;
-  traj_msg.joint_names = joint_names_;
-  traj_msg.header.stamp = rclcpp::Time(0, 0);
-
-  for (size_t i = 0; i < input_positions_.size(); ++i)
+  // Run with LINEAR interpolation
   {
-    trajectory_msgs::msg::JointTrajectoryPoint point;
-    point.positions = input_positions_[i];
-    point.velocities = input_velocities_[i];
-    point.accelerations = input_accelerations_[i];
-    point.effort = input_efforts_[i];
-    point.time_from_start = rclcpp::Duration::from_seconds(input_times_[i]);
-    traj_msg.points.push_back(point);
+    command_interface_types_ = {"position", "velocity", "effort"};
+    state_interface_types_ = {"position", "velocity", "effort"};
+    test_config_name_ = "case4_position_velocity_acceleration_effort";
+    interpolation_method_ = "linear";
+
+    rclcpp::executors::MultiThreadedExecutor executor;
+    std::vector<rclcpp::Parameter> params;
+    params.emplace_back("open_loop_control", true);
+    SetUpAndActivateTrajectoryController(executor, params);
+
+    trajectory_msgs::msg::JointTrajectory traj_msg;
+    traj_msg.joint_names = joint_names_;
+    traj_msg.header.stamp = rclcpp::Time(0, 0);
+
+    for (size_t i = 0; i < input_positions_.size(); ++i)
+    {
+      trajectory_msgs::msg::JointTrajectoryPoint point;
+      point.positions = input_positions_[i];
+      point.velocities = input_velocities_[i];
+      point.accelerations = input_accelerations_[i];
+      point.effort = input_efforts_[i];
+      point.time_from_start = rclcpp::Duration::from_seconds(input_times_[i]);
+      traj_msg.points.push_back(point);
+    }
+
+    trajectory_publisher_->publish(traj_msg);
+    traj_controller_->wait_for_trajectory(executor);
+
+    print_log_header();
+    print_input_trajectory();
+    run_trajectory_with_logging(executor, 2.2, NUM_SAMPLES);
+    print_sampled_trajectory();
+    print_log_footer();
+
+    executor.cancel();
   }
 
-  trajectory_publisher_->publish(traj_msg);
-  traj_controller_->wait_for_trajectory(executor);
-
-  print_log_header();
-  print_input_trajectory();
-  run_trajectory_with_logging(executor, 2.2, NUM_SAMPLES);
-  print_sampled_trajectory();
-  print_log_footer();
-
-  executor.cancel();
-
-}
-
-
-//=============================================================================
-// TEST CASE 5: Position Only (No effort)
-// Input: position only -> Output: position + velocity + acceleration + effort
-//=============================================================================
-TEST_F(TrajectoryInterpolationTest, case5_position_only)
-{
-  // Simple position-only trajectory
-  input_times_ = {0.0, 0.5, 1.0, 1.5, 2.0};
-  input_positions_ = {
-    {0.0, 0.0, 0.0},
-    {0.5, 0.5, 0.5},
-    {1.0, 1.0, 1.0},
-    {1.5, 1.5, 1.5},
-    {2.0, 2.0, 2.0}
-  };
-  input_velocities_ = {};  // No velocities
-  input_efforts_ = {};     // No efforts
-
-  command_interface_types_ = {"position"};
-  state_interface_types_ = {"position", "velocity"};
-  test_config_name_ = "case5_position_only";
-  interpolation_method_ = "linear";
-
-  rclcpp::executors::MultiThreadedExecutor executor;
-  SetUpAndActivateTrajectoryController(executor);
-
-  trajectory_msgs::msg::JointTrajectory traj_msg;
-  traj_msg.joint_names = joint_names_;
-  traj_msg.header.stamp = rclcpp::Time(0, 0);
-
-  for (size_t i = 0; i < input_positions_.size(); ++i)
+  // Run with SPLINE interpolation
   {
-    trajectory_msgs::msg::JointTrajectoryPoint point;
-    point.positions = input_positions_[i];
-    point.time_from_start = rclcpp::Duration::from_seconds(input_times_[i]);
-    traj_msg.points.push_back(point);
+    command_interface_types_ = {"position", "velocity", "effort"};
+    state_interface_types_ = {"position", "velocity", "effort"};
+    test_config_name_ = "case4_position_velocity_acceleration_effort";
+    interpolation_method_ = "splines";
+
+    rclcpp::executors::MultiThreadedExecutor executor;
+    std::vector<rclcpp::Parameter> params;
+    params.emplace_back("open_loop_control", true);
+    SetUpAndActivateTrajectoryController(executor, params);
+
+    trajectory_msgs::msg::JointTrajectory traj_msg;
+    traj_msg.joint_names = joint_names_;
+    traj_msg.header.stamp = rclcpp::Time(0, 0);
+
+    for (size_t i = 0; i < input_positions_.size(); ++i)
+    {
+      trajectory_msgs::msg::JointTrajectoryPoint point;
+      point.positions = input_positions_[i];
+      point.velocities = input_velocities_[i];
+      point.accelerations = input_accelerations_[i];
+      point.effort = input_efforts_[i];
+      point.time_from_start = rclcpp::Duration::from_seconds(input_times_[i]);
+      traj_msg.points.push_back(point);
+    }
+
+    trajectory_publisher_->publish(traj_msg);
+    traj_controller_->wait_for_trajectory(executor);
+
+    print_log_header();
+    print_input_trajectory();
+    run_trajectory_with_logging(executor, 2.2, NUM_SAMPLES);
+    print_sampled_trajectory();
+    print_log_footer();
+
+    EXPECT_NEAR(2.0, logged_data_.back().command_positions[0], EPS);
+    executor.cancel();
   }
-
-  trajectory_publisher_->publish(traj_msg);
-  traj_controller_->wait_for_trajectory(executor);
-
-  print_log_header();
-  print_input_trajectory();
-  run_trajectory_with_logging(executor, 2.2, NUM_SAMPLES);
-  print_sampled_trajectory();
-  print_log_footer();
-
-  EXPECT_NEAR(2.0, logged_data_.back().command_positions[0], EPS);
-  executor.cancel();
 }
 
-//=============================================================================
-// TEST CASE 6: Velocity Only
-// Input: velocity only -> Output: position + velocity + acceleration + effort
-//=============================================================================
-TEST_F(TrajectoryInterpolationTest, case6_velocity_only)
-{
-  // Velocity-only trajectory (position integrated from velocity)
-  input_times_ = {0.0, 0.5, 1.0, 1.5, 2.0};
-  input_positions_ = {
-    {0.0, 0.0, 0.0},
-    {0.5, 0.5, 0.5},
-    {1.25, 1.25, 1.25},
-    {1.75, 1.75, 1.75},
-    {2.0, 2.0, 2.0}
-  };
-  input_velocities_ = {
-    {1.0, 1.0, 1.0},
-    {1.5, 1.5, 1.5},
-    {1.0, 1.0, 1.0},
-    {0.5, 0.5, 0.5},
-    {0.0, 0.0, 0.0}
-  };
-  input_efforts_ = {};  // No efforts
-
-  command_interface_types_ = {"position", "velocity"};
-  state_interface_types_ = {"position", "velocity"};
-  test_config_name_ = "case6_velocity_only";
-  interpolation_method_ = "linear";
-
-  rclcpp::executors::MultiThreadedExecutor executor;
-  std::vector<rclcpp::Parameter> params;
-  params.emplace_back("open_loop_control", true);
-  SetUpAndActivateTrajectoryController(executor, params);
-
-  trajectory_msgs::msg::JointTrajectory traj_msg;
-  traj_msg.joint_names = joint_names_;
-  traj_msg.header.stamp = rclcpp::Time(0, 0);
-
-  for (size_t i = 0; i < input_positions_.size(); ++i)
-  {
-    trajectory_msgs::msg::JointTrajectoryPoint point;
-    point.positions = input_positions_[i];
-    point.velocities = input_velocities_[i];
-    point.time_from_start = rclcpp::Duration::from_seconds(input_times_[i]);
-    traj_msg.points.push_back(point);
-  }
-
-  trajectory_publisher_->publish(traj_msg);
-  traj_controller_->wait_for_trajectory(executor);
-
-  print_log_header();
-  print_input_trajectory();
-  run_trajectory_with_logging(executor, 2.2, NUM_SAMPLES);
-  print_sampled_trajectory();
-  print_log_footer();
-
-  EXPECT_NEAR(2.0, logged_data_.back().command_positions[0], EPS);
-  executor.cancel();
-}
-
-//=============================================================================
-// TEST CASE 7: Trapezoidal Velocity Profile
-// Input: position with trapezoidal velocity profile -> Output: position + velocity + acceleration + effort
-//=============================================================================
-TEST_F(TrajectoryInterpolationTest, case7_trapezoidal_profile)
-{
-  // Trapezoidal velocity profile: accelerate, constant velocity, decelerate
-  input_times_ = {0.0, 0.5, 1.0, 1.5, 2.0};
-  input_positions_ = {
-    {0.0, 0.0, 0.0},       // Start
-    {0.25, 0.25, 0.25},    // End of acceleration
-    {1.0, 1.0, 1.0},       // Constant velocity
-    {1.75, 1.75, 1.75},    // Start of deceleration
-    {2.0, 2.0, 2.0}        // End
-  };
-  input_velocities_ = {
-    {0.0, 0.0, 0.0},       // Start at rest
-    {1.0, 1.0, 1.0},       // Accelerated to max velocity
-    {1.0, 1.0, 1.0},       // Constant velocity
-    {1.0, 1.0, 1.0},       // Still at max velocity
-    {0.0, 0.0, 0.0}        // Stop
-  };
-  input_efforts_ = {
-    {0.0, 0.0, 0.0},
-    {1.0, 1.0, 1.0},
-    {0.0, 0.0, 0.0},
-    {-1.0, -1.0, -1.0},
-    {0.0, 0.0, 0.0}
-  };
-
-  command_interface_types_ = {"position", "velocity", "effort"};
-  state_interface_types_ = {"position", "velocity", "effort"};
-  test_config_name_ = "case7_trapezoidal_profile";
-  interpolation_method_ = "linear";
-
-  rclcpp::executors::MultiThreadedExecutor executor;
-  std::vector<rclcpp::Parameter> params;
-  params.emplace_back("open_loop_control", true);
-  SetUpAndActivateTrajectoryController(executor, params);
-
-  trajectory_msgs::msg::JointTrajectory traj_msg;
-  traj_msg.joint_names = joint_names_;
-  traj_msg.header.stamp = rclcpp::Time(0, 0);
-
-  for (size_t i = 0; i < input_positions_.size(); ++i)
-  {
-    trajectory_msgs::msg::JointTrajectoryPoint point;
-    point.positions = input_positions_[i];
-    point.velocities = input_velocities_[i];
-    point.effort = input_efforts_[i];
-    point.time_from_start = rclcpp::Duration::from_seconds(input_times_[i]);
-    traj_msg.points.push_back(point);
-  }
-
-  trajectory_publisher_->publish(traj_msg);
-  traj_controller_->wait_for_trajectory(executor);
-
-  print_log_header();
-  print_input_trajectory();
-  run_trajectory_with_logging(executor, 2.2, NUM_SAMPLES);
-  print_sampled_trajectory();
-  print_log_footer();
-
-  EXPECT_NEAR(2.0, logged_data_.back().command_positions[0], EPS);
-  executor.cancel();
-}
-
-//=============================================================================
-// TEST CASE 8: Zero Velocity Hold (Dwell)
-// Input: position with zero velocities for hold/dwell behavior -> Output: position + velocity + acceleration + effort
-//=============================================================================
-TEST_F(TrajectoryInterpolationTest, case8_zero_velocity_hold)
-{
-  // Test hold/dwell behavior with zero velocities
-  input_times_ = {0.0, 0.5, 1.0, 1.5, 2.0};
-  input_positions_ = {
-    {0.0, 0.0, 0.0},
-    {1.0, 1.0, 1.0},     // Move to position
-    {1.0, 1.0, 1.0},     // Hold at position
-    {1.0, 1.0, 1.0},     // Continue holding
-    {2.0, 2.0, 2.0}      // Move to final position
-  };
-  input_velocities_ = {
-    {0.0, 0.0, 0.0},
-    {0.0, 0.0, 0.0},     // Stop
-    {0.0, 0.0, 0.0},     // Hold (zero velocity)
-    {0.0, 0.0, 0.0},     // Hold (zero velocity)
-    {0.0, 0.0, 0.0}      // Stop
-  };
-  input_efforts_ = {
-    {0.0, 0.0, 0.0},
-    {2.0, 2.0, 2.0},
-    {2.0, 2.0, 2.0},     // Holding effort
-    {2.0, 2.0, 2.0},     // Holding effort
-    {0.0, 0.0, 0.0}
-  };
-
-  command_interface_types_ = {"position", "velocity", "effort"};
-  state_interface_types_ = {"position", "velocity", "effort"};
-  test_config_name_ = "case8_zero_velocity_hold";
-  interpolation_method_ = "linear";
-
-  rclcpp::executors::MultiThreadedExecutor executor;
-  std::vector<rclcpp::Parameter> params;
-  params.emplace_back("open_loop_control", true);
-  SetUpAndActivateTrajectoryController(executor, params);
-
-  trajectory_msgs::msg::JointTrajectory traj_msg;
-  traj_msg.joint_names = joint_names_;
-  traj_msg.header.stamp = rclcpp::Time(0, 0);
-
-  for (size_t i = 0; i < input_positions_.size(); ++i)
-  {
-    trajectory_msgs::msg::JointTrajectoryPoint point;
-    point.positions = input_positions_[i];
-    point.velocities = input_velocities_[i];
-    point.effort = input_efforts_[i];
-    point.time_from_start = rclcpp::Duration::from_seconds(input_times_[i]);
-    traj_msg.points.push_back(point);
-  }
-
-  trajectory_publisher_->publish(traj_msg);
-  traj_controller_->wait_for_trajectory(executor);
-
-  print_log_header();
-  print_input_trajectory();
-  run_trajectory_with_logging(executor, 2.2, NUM_SAMPLES);
-  print_sampled_trajectory();
-  print_log_footer();
-
-  EXPECT_NEAR(2.0, logged_data_.back().command_positions[0], EPS);
-  executor.cancel();
-}
