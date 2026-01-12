@@ -217,12 +217,8 @@ def plot_comparison(case_name: str, logs_dict: Dict[str, TrajectoryLog], joint_i
     fig.suptitle(f'{case_name} - Interpolation Comparison (Joint {joint_idx})', 
                  fontsize=14, fontweight='bold')
     
-    # Color scheme
-    color_pos = '#1f77b4'  # Blue
-    color_vel = '#2ca02c'  # Green
-    color_acc = '#ff7f0e'  # Orange
-    color_eff = '#9467bd'  # Purple
-    color_waypoint = '#d62728'  # Red
+    # Color scheme for waypoint markers
+    color_waypoint = 'black'  # Black for clear visibility
     
     linear_log = logs_dict.get('linear')
     spline_log = logs_dict.get('splines')
@@ -237,31 +233,33 @@ def plot_comparison(case_name: str, logs_dict: Dict[str, TrajectoryLog], joint_i
     if ref_data is None:
         return None
     
-    # Plot linear interpolation (if available)
-    if linear_log:
-        linear_data = extract_data(linear_log, joint_idx)
-        if linear_data:
-            axes[0].plot(linear_data['times'], linear_data['pos'], ':', color=color_pos, 
-                        linewidth=3, label='Linear', alpha=0.9)
-            axes[1].plot(linear_data['times'], linear_data['vel'], ':', color=color_vel, 
-                        linewidth=3, label='Linear', alpha=0.9)
-            axes[2].plot(linear_data['times'], linear_data['acc'], ':', color=color_acc, 
-                        linewidth=3, label='Linear', alpha=0.9)
-            axes[3].plot(linear_data['times'], linear_data['eff'], ':', color=color_eff, 
-                        linewidth=3, label='Linear', alpha=0.9)
-    
-    # Plot spline interpolation (if available)
+    # Plot spline interpolation FIRST (so it's in background if lines overlap)
     if spline_log:
         spline_data = extract_data(spline_log, joint_idx)
         if spline_data:
-            axes[0].plot(spline_data['times'], spline_data['pos'], '-', color=color_pos, 
-                        linewidth=2.5, label='Spline')
-            axes[1].plot(spline_data['times'], spline_data['vel'], '-', color=color_vel, 
-                        linewidth=2.5, label='Spline')
-            axes[2].plot(spline_data['times'], spline_data['acc'], '-', color=color_acc, 
-                        linewidth=2.5, label='Spline')
-            axes[3].plot(spline_data['times'], spline_data['eff'], '-', color=color_eff, 
-                        linewidth=2.5, label='Spline')
+            # Use solid line with blue color for spline
+            axes[0].plot(spline_data['times'], spline_data['pos'], '-', color='blue', 
+                        linewidth=2, label='Spline', alpha=0.7)
+            axes[1].plot(spline_data['times'], spline_data['vel'], '-', color='blue', 
+                        linewidth=2, label='Spline', alpha=0.7)
+            axes[2].plot(spline_data['times'], spline_data['acc'], '-', color='blue', 
+                        linewidth=2, label='Spline', alpha=0.7)
+            axes[3].plot(spline_data['times'], spline_data['eff'], '-', color='blue', 
+                        linewidth=2, label='Spline', alpha=0.7)
+    
+    # Plot linear interpolation SECOND (so it's on top and visible even if overlapping)
+    if linear_log:
+        linear_data = extract_data(linear_log, joint_idx)
+        if linear_data:
+            # Use prominent dashed line with red color for linear
+            axes[0].plot(linear_data['times'], linear_data['pos'], '--', color='red', 
+                        linewidth=3, label='Linear', alpha=0.9, dashes=[10, 5])
+            axes[1].plot(linear_data['times'], linear_data['vel'], '--', color='red', 
+                        linewidth=3, label='Linear', alpha=0.9, dashes=[10, 5])
+            axes[2].plot(linear_data['times'], linear_data['acc'], '--', color='red', 
+                        linewidth=3, label='Linear', alpha=0.9, dashes=[10, 5])
+            axes[3].plot(linear_data['times'], linear_data['eff'], '--', color='red', 
+                        linewidth=3, label='Linear', alpha=0.9, dashes=[10, 5])
     
     # Add waypoint markers (using reference data)
     if len(ref_data['input_times']) > 0:
