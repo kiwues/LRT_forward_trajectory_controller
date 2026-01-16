@@ -127,12 +127,6 @@ controller_interface::return_type JointTrajectoryController::update(
   {
     params_ = param_listener_->get_params();
     default_tolerances_ = get_segment_tolerances(logger, params_);
-    // update the PID gains
-    // variable use_closed_loop_pid_adapter_ is updated in on_configure only
-    if (use_closed_loop_pid_adapter_)
-    {
-      update_pids();
-    }
   }
 
   auto compute_error_for_joint = [&](
@@ -141,26 +135,18 @@ controller_interface::return_type JointTrajectoryController::update(
                                    const JointTrajectoryPoint & desired)
   {
     // error defined as the difference between current and desired
-    if (joints_angle_wraparound_[index])
-    {
       // if desired, the shortest_angular_distance is calculated, i.e., the error is
       //  normalized between -pi<error<pi
-      error.positions[index] =
-        angles::shortest_angular_distance(current.positions[index], desired.positions[index]);
-    }
-    else
-    {
       error.positions[index] = desired.positions[index] - current.positions[index];
-    }
     if (
       has_velocity_state_interface_ &&
       (has_velocity_command_interface_ || has_effort_command_interface_))
     {
       error.velocities[index] = desired.velocities[index] - current.velocities[index];
     }
-    if (has_acceleration_state_interface_ && has_acceleration_command_interface_)
+    if (has_effort_state_interface_ && has_effort_command_interface_)
     {
-      error.accelerations[index] = desired.accelerations[index] - current.accelerations[index];
+      error.effort[index] = desired.effort[index] - current.effort[index];
     }
   };
 
@@ -206,12 +192,12 @@ controller_interface::return_type JointTrajectoryController::update(
       if (params_.open_loop_control)
       {
         traj_external_point_ptr_->set_point_before_trajectory_msg(
-          time, last_commanded_state_, joints_angle_wraparound_);
+          time, last_commanded_state_); //joints_angle_wraparound_); //usunalem joints_angle_wraparound_
       }
       else
       {
         traj_external_point_ptr_->set_point_before_trajectory_msg(
-          time, state_current_, joints_angle_wraparound_);
+          time, state_current_); //joints_angle_wraparound_); //usunalem joints_angle_wraparound_
       }
     }
 
@@ -292,18 +278,6 @@ controller_interface::return_type JointTrajectoryController::update(
       // set values for next hardware write() if tolerance is met
       if (!tolerance_violated_while_moving && within_goal_time)
       {
-        if (use_closed_loop_pid_adapter_)
-        {
-          // Update PIDs
-          for (auto i = 0ul; i < dof_; ++i)
-          {
-            tmp_command_[i] = (state_desired_.velocities[i] * ff_velocity_scale_[i]) +
-                              pids_[i]->computeCommand(
-                                state_error_.positions[i], state_error_.velocities[i],
-                                (uint64_t)period.nanoseconds());
-          }
-        }
-
         // set values for next hardware write()
         if (has_position_command_interface_)
         {
@@ -311,22 +285,11 @@ controller_interface::return_type JointTrajectoryController::update(
         }
         if (has_velocity_command_interface_)
         {
-          if (use_closed_loop_pid_adapter_)
-          {
-            assign_interface_from_point(joint_command_interface_[1], tmp_command_);
-          }
-          else
-          {
-            assign_interface_from_point(joint_command_interface_[1], state_desired_.velocities);
-          }
-        }
-        if (has_acceleration_command_interface_)
-        {
-          assign_interface_from_point(joint_command_interface_[2], state_desired_.accelerations);
+			assign_interface_from_point(joint_command_interface_[1], state_desired_.velocities);
         }
         if (has_effort_command_interface_)
         {
-          assign_interface_from_point(joint_command_interface_[3], tmp_command_);
+          assign_interface_from_point(joint_command_interface_[2], state_desired_.effort);
         }
 
         // store the previous command. Used in open-loop control mode
@@ -441,26 +404,26 @@ void JointTrajectoryController::read_state_from_state_interfaces(JointTrajectory
   // Assign values from the hardware
   // Position states always exist
   assign_point_from_interface(state.positions, joint_state_interface_[0]);
-  // velocity and acceleration states are optional
+  // velocity and effort states are optional
   if (has_velocity_state_interface_)
   {
     assign_point_from_interface(state.velocities, joint_state_interface_[1]);
     // Acceleration is used only in combination with velocity
-    if (has_acceleration_state_interface_)
+    if (has_effort_state_interface_)
     {
-      assign_point_from_interface(state.accelerations, joint_state_interface_[2]);
+      assign_point_from_interface(state.effort, joint_state_interface_[2]);
     }
     else
     {
       // Make empty so the property is ignored during interpolation
-      state.accelerations.clear();
+      state.effort.clear();
     }
   }
   else
   {
     // Make empty so the property is ignored during interpolation
     state.velocities.clear();
-    state.accelerations.clear();
+    state.effort.clear();
   }
 }
 
@@ -495,7 +458,7 @@ bool JointTrajectoryController::read_state_from_command_interfaces(JointTrajecto
     state.positions.clear();
     has_values = false;
   }
-  // velocity and acceleration states are optional
+  // velocity and effort states are optional
   if (has_velocity_state_interface_)
   {
     if (has_velocity_command_interface_ && interface_has_values(joint_command_interface_[1]))
@@ -512,24 +475,16 @@ bool JointTrajectoryController::read_state_from_command_interfaces(JointTrajecto
   {
     state.velocities.clear();
   }
-  // Acceleration is used only in combination with velocity
-  if (has_acceleration_state_interface_)
-  {
-    if (has_acceleration_command_interface_ && interface_has_values(joint_command_interface_[2]))
-    {
-      assign_point_from_interface(state.accelerations, joint_command_interface_[2]);
-    }
-    else
-    {
-      state.accelerations.clear();
-      has_values = false;
-    }
+  if(has_effort_state_interface_){
+	  if(has_effort_command_interface_ && interface_has_values(joint_command_interface_[2])){
+	assign_point_from_interface(state.effort, joint_command_interface_[2]);
+	  }else {
+		  state.effort.clear();
+		  has_values=false;
+	  }
+  }else{
+	  state.effort.clear();
   }
-  else
-  {
-    state.accelerations.clear();
-  }
-
   return has_values;
 }
 
@@ -579,23 +534,11 @@ bool JointTrajectoryController::read_commands_from_command_interfaces(
       has_values = false;
     }
   }
-  if (has_acceleration_command_interface_)
+  if (has_effort_command_interface_)
   {
     if (interface_has_values(joint_command_interface_[2]))
     {
-      assign_point_from_interface(commands.accelerations, joint_command_interface_[2]);
-    }
-    else
-    {
-      commands.accelerations.clear();
-      has_values = false;
-    }
-  }
-  if (has_effort_command_interface_)
-  {
-    if (interface_has_values(joint_command_interface_[3]))
-    {
-      assign_point_from_interface(commands.effort, joint_command_interface_[3]);
+      assign_point_from_interface(commands.effort, joint_command_interface_[2]);
     }
     else
     {
@@ -603,7 +546,6 @@ bool JointTrajectoryController::read_commands_from_command_interfaces(
       has_values = false;
     }
   }
-
   return has_values;
 }
 
@@ -650,7 +592,7 @@ void JointTrajectoryController::query_state_service(
   }
   response->position = state_requested.positions;
   response->velocity = state_requested.velocities;
-  response->acceleration = state_requested.accelerations;
+  // response->effort = state_requested.effort;
 }
 
 controller_interface::CallbackReturn JointTrajectoryController::on_configure(
@@ -718,26 +660,9 @@ controller_interface::CallbackReturn JointTrajectoryController::on_configure(
     contains_interface_type(params_.command_interfaces, hardware_interface::HW_IF_POSITION);
   has_velocity_command_interface_ =
     contains_interface_type(params_.command_interfaces, hardware_interface::HW_IF_VELOCITY);
-  has_acceleration_command_interface_ =
-    contains_interface_type(params_.command_interfaces, hardware_interface::HW_IF_ACCELERATION);
   has_effort_command_interface_ =
     contains_interface_type(params_.command_interfaces, hardware_interface::HW_IF_EFFORT);
 
-  // if there is only velocity or if there is effort command interface
-  // then use also PID adapter
-  use_closed_loop_pid_adapter_ =
-    (has_velocity_command_interface_ && params_.command_interfaces.size() == 1 &&
-     !params_.open_loop_control) ||
-    has_effort_command_interface_;
-
-  if (use_closed_loop_pid_adapter_)
-  {
-    pids_.resize(dof_);
-    ff_velocity_scale_.resize(dof_);
-    tmp_command_.resize(dof_, 0.0);
-
-    update_pids();
-  }
 
   // Configure joint position error normalization from ROS parameters (angle_wraparound)
   joints_angle_wraparound_.resize(dof_);
@@ -775,32 +700,40 @@ controller_interface::CallbackReturn JointTrajectoryController::on_configure(
     contains_interface_type(params_.state_interfaces, hardware_interface::HW_IF_POSITION);
   has_velocity_state_interface_ =
     contains_interface_type(params_.state_interfaces, hardware_interface::HW_IF_VELOCITY);
-  has_acceleration_state_interface_ =
-    contains_interface_type(params_.state_interfaces, hardware_interface::HW_IF_ACCELERATION);
+  has_effort_state_interface_ =
+    contains_interface_type(params_.state_interfaces, hardware_interface::HW_IF_EFFORT);
 
   // Validation of combinations of state and velocity together have to be done
   // here because the parameter validators only deal with each parameter
   // separately.
-  if (
-    has_velocity_command_interface_ && params_.command_interfaces.size() == 1 &&
-    (!has_velocity_state_interface_ || !has_position_state_interface_))
+
+  if (has_velocity_command_interface_ && 
+		  !has_position_command_interface_)
   {
     RCLCPP_ERROR(
       logger,
-      "'velocity' command interface can only be used alone if 'velocity' and "
-      "'position' state interfaces are present");
+      "'velocity' command interface can only be with 'position' "
+      "command interface");
     return CallbackReturn::FAILURE;
   }
 
-  // effort is always used alone so no need for size check
-  if (
-    has_effort_command_interface_ &&
-    (!has_velocity_state_interface_ || !has_position_state_interface_))
+  if (has_effort_command_interface_ &&
+     !has_position_command_interface_)
   {
     RCLCPP_ERROR(
       logger,
-      "'effort' command interface can only be used alone if 'velocity' and "
-      "'position' state interfaces are present");
+      "'effort' command interface can only be used if "
+      "'position' command interface is present");
+    return CallbackReturn::FAILURE;
+  }
+
+
+  if(!has_position_state_interface_||
+		  !has_velocity_state_interface_||
+		  !has_effort_state_interface_){
+    RCLCPP_ERROR(
+      logger,
+      "'position, 'velocity' and 'effort' state interfaces have to be present");
     return CallbackReturn::FAILURE;
   }
 
@@ -862,7 +795,7 @@ controller_interface::CallbackReturn JointTrajectoryController::on_configure(
   state_publisher_legacy_->msg_.joint_names = params_.joints;
   state_publisher_legacy_->msg_.desired.positions.resize(dof_);
   state_publisher_legacy_->msg_.desired.velocities.resize(dof_);
-  state_publisher_legacy_->msg_.desired.accelerations.resize(dof_);
+  state_publisher_legacy_->msg_.desired.effort.resize(dof_);
   state_publisher_legacy_->msg_.actual.positions.resize(dof_);
   state_publisher_legacy_->msg_.error.positions.resize(dof_);
   if (has_velocity_state_interface_)
@@ -870,10 +803,10 @@ controller_interface::CallbackReturn JointTrajectoryController::on_configure(
     state_publisher_legacy_->msg_.actual.velocities.resize(dof_);
     state_publisher_legacy_->msg_.error.velocities.resize(dof_);
   }
-  if (has_acceleration_state_interface_)
+  if (has_effort_state_interface_)
   {
-    state_publisher_legacy_->msg_.actual.accelerations.resize(dof_);
-    state_publisher_legacy_->msg_.error.accelerations.resize(dof_);
+    state_publisher_legacy_->msg_.actual.effort.resize(dof_);
+    state_publisher_legacy_->msg_.error.effort.resize(dof_);
   }
   state_publisher_legacy_->unlock();
 
@@ -885,7 +818,7 @@ controller_interface::CallbackReturn JointTrajectoryController::on_configure(
   state_publisher_->msg_.joint_names = params_.joints;
   state_publisher_->msg_.reference.positions.resize(dof_);
   state_publisher_->msg_.reference.velocities.resize(dof_);
-  state_publisher_->msg_.reference.accelerations.resize(dof_);
+  state_publisher_->msg_.reference.effort.resize(dof_);
   state_publisher_->msg_.feedback.positions.resize(dof_);
   state_publisher_->msg_.error.positions.resize(dof_);
   if (has_velocity_state_interface_)
@@ -893,10 +826,10 @@ controller_interface::CallbackReturn JointTrajectoryController::on_configure(
     state_publisher_->msg_.feedback.velocities.resize(dof_);
     state_publisher_->msg_.error.velocities.resize(dof_);
   }
-  if (has_acceleration_state_interface_)
+  if (has_effort_state_interface_)
   {
-    state_publisher_->msg_.feedback.accelerations.resize(dof_);
-    state_publisher_->msg_.error.accelerations.resize(dof_);
+    state_publisher_->msg_.feedback.effort.resize(dof_);
+    state_publisher_->msg_.error.effort.resize(dof_);
   }
   if (has_position_command_interface_)
   {
@@ -905,10 +838,6 @@ controller_interface::CallbackReturn JointTrajectoryController::on_configure(
   if (has_velocity_command_interface_)
   {
     state_publisher_->msg_.output.velocities.resize(dof_);
-  }
-  if (has_acceleration_command_interface_)
-  {
-    state_publisher_->msg_.output.accelerations.resize(dof_);
   }
   if (has_effort_command_interface_)
   {
@@ -991,7 +920,7 @@ controller_interface::CallbackReturn JointTrajectoryController::on_activate(
         logger, "Expected %zu '%s' state interfaces, got %zu.", dof_, interface.c_str(),
         joint_state_interface_[index].size());
       return CallbackReturn::ERROR;
-    }
+   }
   }
 
   traj_external_point_ptr_ = std::make_shared<Trajectory>();
@@ -1017,11 +946,6 @@ controller_interface::CallbackReturn JointTrajectoryController::on_activate(
     // Initialize current state storage from hardware
     read_state_from_state_interfaces(state_current_);
     read_state_from_state_interfaces(last_commanded_state_);
-  }
-  // reset/zero out all of the PID's (The integral term is not retained and reset to zero)
-  for (auto & pid : pids_)
-  {
-    pid->reset();
   }
 
   // The controller should start by holding position at the beginning of active state
@@ -1079,15 +1003,9 @@ controller_interface::CallbackReturn JointTrajectoryController::on_deactivate(
       joint_command_interface_[1][index].get().set_value(0.0);
     }
 
-    if (has_acceleration_command_interface_)
-    {
-      joint_command_interface_[2][index].get().set_value(0.0);
-    }
-
-    // TODO(anyone): How to halt when using effort commands?
     if (has_effort_command_interface_)
     {
-      joint_command_interface_[3][index].get().set_value(0.0);
+      joint_command_interface_[2][index].get().set_value(0.0);
     }
   }
 
@@ -1126,14 +1044,6 @@ bool JointTrajectoryController::reset()
   subscriber_is_active_ = false;
   joint_command_subscriber_.reset();
 
-  for (const auto & pid : pids_)
-  {
-    if (pid)
-    {
-      pid->reset();
-    }
-  }
-
   traj_external_point_ptr_.reset();
 
   return true;
@@ -1159,7 +1069,7 @@ void JointTrajectoryController::publish_state(
     state_publisher_legacy_->msg_.header.stamp = last_state_publish_time_;
     state_publisher_legacy_->msg_.desired.positions = desired_state.positions;
     state_publisher_legacy_->msg_.desired.velocities = desired_state.velocities;
-    state_publisher_legacy_->msg_.desired.accelerations = desired_state.accelerations;
+    state_publisher_legacy_->msg_.desired.effort = desired_state.effort;
     state_publisher_legacy_->msg_.actual.positions = current_state.positions;
     state_publisher_legacy_->msg_.actual.time_from_start = current_state.time_from_start;
     state_publisher_legacy_->msg_.error.positions = state_error.positions;
@@ -1168,10 +1078,10 @@ void JointTrajectoryController::publish_state(
       state_publisher_legacy_->msg_.actual.velocities = current_state.velocities;
       state_publisher_legacy_->msg_.error.velocities = state_error.velocities;
     }
-    if (has_acceleration_state_interface_)
+    if (has_effort_state_interface_)
     {
-      state_publisher_legacy_->msg_.actual.accelerations = current_state.accelerations;
-      state_publisher_legacy_->msg_.error.accelerations = state_error.accelerations;
+      state_publisher_legacy_->msg_.actual.effort = current_state.effort;
+      state_publisher_legacy_->msg_.error.effort = state_error.effort;
     }
 
     state_publisher_legacy_->unlockAndPublish();
@@ -1190,7 +1100,7 @@ void JointTrajectoryController::publish_state(
     state_publisher_->msg_.header.stamp = last_state_publish_time_;
     state_publisher_->msg_.reference.positions = desired_state.positions;
     state_publisher_->msg_.reference.velocities = desired_state.velocities;
-    state_publisher_->msg_.reference.accelerations = desired_state.accelerations;
+    state_publisher_->msg_.reference.effort = desired_state.effort;
     state_publisher_->msg_.reference.time_from_start = desired_state.time_from_start;
     state_publisher_->msg_.feedback.time_from_start = current_state.time_from_start;
     state_publisher_->msg_.feedback.positions = current_state.positions;
@@ -1200,10 +1110,10 @@ void JointTrajectoryController::publish_state(
       state_publisher_->msg_.feedback.velocities = current_state.velocities;
       state_publisher_->msg_.error.velocities = state_error.velocities;
     }
-    if (has_acceleration_state_interface_)
+    if (has_effort_state_interface_)
     {
-      state_publisher_->msg_.feedback.accelerations = current_state.accelerations;
-      state_publisher_->msg_.error.accelerations = state_error.accelerations;
+      state_publisher_->msg_.feedback.effort = current_state.effort;
+      state_publisher_->msg_.error.effort = state_error.effort;
     }
 
     // DESIRED and ACTUAL are deprecated in the message but we are still
@@ -1211,16 +1121,16 @@ void JointTrajectoryController::publish_state(
     state_publisher_->msg_.desired.time_from_start = desired_state.time_from_start;
     state_publisher_->msg_.desired.positions = desired_state.positions;
     state_publisher_->msg_.desired.velocities = desired_state.velocities;
-    state_publisher_->msg_.desired.accelerations = desired_state.accelerations;
+    state_publisher_->msg_.desired.effort = desired_state.effort;
     state_publisher_->msg_.actual.time_from_start = current_state.time_from_start;
     state_publisher_->msg_.actual.positions = current_state.positions;
     if (has_velocity_state_interface_)
     {
       state_publisher_->msg_.actual.velocities = current_state.velocities;
     }
-    if (has_acceleration_state_interface_)
+    if (has_effort_state_interface_)
     {
-      state_publisher_->msg_.actual.accelerations = current_state.accelerations;
+      state_publisher_->msg_.actual.effort = current_state.effort;
     }
 
     if (read_commands_from_command_interfaces(command_current_))
@@ -1357,7 +1267,7 @@ void JointTrajectoryController::fill_partial_goal(
 
       for (auto & it : trajectory_msg->points)
       {
-        // Assume hold position with 0 velocity and acceleration for missing joints
+        // Assume hold position with 0 velocity and effort for missing joints
         if (!it.positions.empty())
         {
           if (
@@ -1376,10 +1286,6 @@ void JointTrajectoryController::fill_partial_goal(
         if (!it.velocities.empty())
         {
           it.velocities.push_back(0.0);
-        }
-        if (!it.accelerations.empty())
-        {
-          it.accelerations.push_back(0.0);
         }
         if (!it.effort.empty())
         {
@@ -1431,8 +1337,8 @@ void JointTrajectoryController::sort_to_local_joint_order(
     trajectory_msg->points[index].velocities =
       remap(trajectory_msg->points[index].velocities, mapping_vector);
 
-    trajectory_msg->points[index].accelerations =
-      remap(trajectory_msg->points[index].accelerations, mapping_vector);
+    trajectory_msg->points[index].effort =
+      remap(trajectory_msg->points[index].effort, mapping_vector);
 
     trajectory_msg->points[index].effort =
       remap(trajectory_msg->points[index].effort, mapping_vector);
@@ -1548,16 +1454,16 @@ bool JointTrajectoryController::validate_trajectory_msg(
 
     const size_t joint_count = trajectory.joint_names.size();
     const auto & points = trajectory.points;
-    // This currently supports only position, velocity and acceleration inputs
+    // This currently supports only position, velocity and effort inputs
     if (params_.allow_integration_in_goal_trajectories)
     {
       if (
         points[i].positions.empty() && points[i].velocities.empty() &&
-        points[i].accelerations.empty())
+        points[i].effort.empty())
       {
         RCLCPP_ERROR(
           get_node()->get_logger(),
-          "The given trajectory has no position, velocity, or acceleration points.");
+          "The given trajectory has no position, velocity, or effort points.");
         return false;
       }
       const bool position_error =
@@ -1566,11 +1472,11 @@ bool JointTrajectoryController::validate_trajectory_msg(
       const bool velocity_error =
         !points[i].velocities.empty() &&
         !validate_trajectory_point_field(joint_count, points[i].velocities, "velocities", i, false);
-      const bool acceleration_error =
-        !points[i].accelerations.empty() &&
+      const bool effort_error =
+        !points[i].effort.empty() &&
         !validate_trajectory_point_field(
-          joint_count, points[i].accelerations, "accelerations", i, false);
-      if (position_error || velocity_error || acceleration_error)
+          joint_count, points[i].effort, "effort", i, false);
+      if (position_error || velocity_error || effort_error)
       {
         return false;
       }
@@ -1579,15 +1485,8 @@ bool JointTrajectoryController::validate_trajectory_msg(
       !validate_trajectory_point_field(joint_count, points[i].positions, "positions", i, false) ||
       !validate_trajectory_point_field(joint_count, points[i].velocities, "velocities", i, true) ||
       !validate_trajectory_point_field(
-        joint_count, points[i].accelerations, "accelerations", i, true))
+        joint_count, points[i].effort, "effort", i, true))
     {
-      return false;
-    }
-    // reject effort entries
-    if (!points[i].effort.empty())
-    {
-      RCLCPP_ERROR(
-        get_node()->get_logger(), "Trajectories with effort fields are currently not supported.");
       return false;
     }
   }
@@ -1629,7 +1528,7 @@ std::shared_ptr<trajectory_msgs::msg::JointTrajectory>
 JointTrajectoryController::set_success_trajectory_point()
 {
   // set last command to be repeated at success, no matter if it has nonzero velocity or
-  // acceleration
+  // effort
   hold_position_msg_ptr_->points[0] = traj_external_point_ptr_->get_trajectory_msg()->points.back();
   hold_position_msg_ptr_->points[0].time_from_start = rclcpp::Duration(0, 0);
 
@@ -1654,9 +1553,9 @@ void JointTrajectoryController::resize_joint_trajectory_point(
   {
     point.velocities.resize(size, 0.0);
   }
-  if (has_acceleration_state_interface_)
+  if (has_effort_state_interface_)
   {
-    point.accelerations.resize(size, 0.0);
+    point.effort.resize(size, 0.0);
   }
 }
 
@@ -1671,10 +1570,6 @@ void JointTrajectoryController::resize_joint_trajectory_point_command(
   {
     point.velocities.resize(size, 0.0);
   }
-  if (has_acceleration_command_interface_)
-  {
-    point.accelerations.resize(size, 0.0);
-  }
   if (has_effort_command_interface_)
   {
     point.effort.resize(size, 0.0);
@@ -1686,39 +1581,6 @@ bool JointTrajectoryController::has_active_trajectory() const
   return traj_external_point_ptr_ != nullptr && traj_external_point_ptr_->has_trajectory_msg();
 }
 
-void JointTrajectoryController::update_pids()
-{
-  for (size_t i = 0; i < dof_; ++i)
-  {
-    const auto & gains = params_.gains.joints_map.at(params_.joints[i]);
-    if (pids_[i])
-    {
-      // update PIDs with gains from ROS parameters
-      pids_[i]->setGains(gains.p, gains.i, gains.d, gains.i_clamp, -gains.i_clamp);
-    }
-    else
-    {
-      // Init PIDs with gains from ROS parameters
-      pids_[i] = std::make_shared<control_toolbox::Pid>(
-        gains.p, gains.i, gains.d, gains.i_clamp, -gains.i_clamp);
-    }
-    // Check deprecated style for "ff_velocity_scale" parameter definition.
-    if (gains.ff_velocity_scale == 0.0)
-    {
-      RCLCPP_WARN(
-        get_node()->get_logger(),
-        "'ff_velocity_scale' parameters is not defined under 'gains.<joint_name>.' structure. "
-        "Maybe you are using deprecated format 'ff_velocity_scale/<joint_name>'!");
-
-      ff_velocity_scale_[i] = auto_declare<double>("ff_velocity_scale/" + params_.joints[i], 0.0);
-    }
-    else
-    {
-      ff_velocity_scale_[i] = gains.ff_velocity_scale;
-    }
-  }
-}
-
 void JointTrajectoryController::init_hold_position_msg()
 {
   hold_position_msg_ptr_ = std::make_shared<trajectory_msgs::msg::JointTrajectory>();
@@ -1727,17 +1589,11 @@ void JointTrajectoryController::init_hold_position_msg()
   hold_position_msg_ptr_->joint_names = params_.joints;
   hold_position_msg_ptr_->points.resize(1);  // a trivial msg only
   hold_position_msg_ptr_->points[0].velocities.clear();
-  hold_position_msg_ptr_->points[0].accelerations.clear();
   hold_position_msg_ptr_->points[0].effort.clear();
-  if (has_velocity_command_interface_ || has_acceleration_command_interface_)
+  if (has_velocity_command_interface_)
   {
     // add velocity, so that trajectory sampling returns velocity points in any case
     hold_position_msg_ptr_->points[0].velocities.resize(dof_, 0.0);
-  }
-  if (has_acceleration_command_interface_)
-  {
-    // add velocity, so that trajectory sampling returns acceleration points in any case
-    hold_position_msg_ptr_->points[0].accelerations.resize(dof_, 0.0);
   }
 }
 

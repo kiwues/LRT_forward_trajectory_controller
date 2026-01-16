@@ -226,6 +226,7 @@ void Trajectory::interpolate_between_points(
   output.positions.resize(dim, 0.0);
   output.velocities.resize(dim, 0.0);
   output.accelerations.resize(dim, 0.0);
+  output.effort.resize(dim, 0.0);
 
   auto generate_powers = [](int n, double x, double * powers)
   {
@@ -238,15 +239,16 @@ void Trajectory::interpolate_between_points(
 
   bool has_velocity = !state_a.velocities.empty() && !state_b.velocities.empty();
   bool has_accel = !state_a.accelerations.empty() && !state_b.accelerations.empty();
+  bool has_effort = !state_a.effort.empty() && !state_b.effort.empty();
   if (duration_so_far.seconds() < 0.0)
   {
     duration_so_far = rclcpp::Duration::from_seconds(0.0);
-    has_velocity = has_accel = false;
+    has_velocity = has_accel = has_effort=false;
   }
   if (duration_so_far.seconds() > duration_btwn_points.seconds())
   {
     duration_so_far = duration_btwn_points;
-    has_velocity = has_accel = false;
+    has_velocity = has_accel = has_effort=false;
   }
 
   double t[6];
@@ -343,6 +345,17 @@ void Trajectory::interpolate_between_points(
       output.accelerations[i] = t[0] * 2.0 * coefficients[2] + t[1] * 6.0 * coefficients[3] +
                                 t[2] * 12.0 * coefficients[4] + t[3] * 20.0 * coefficients[5];
     }
+  }
+  if(has_effort){
+	  double ratio =0.0;
+	  if(duration_btwn_points.seconds()!=0.0){
+		  ratio=duration_so_far.seconds()/duration_btwn_points.seconds();
+	  }
+	  for(size_t i=0;i<dim;++i){
+		  output.effort[i]=state_a.effort[i]+(state_b.effort[i]-state_a.effort[i])*ratio;
+	  }
+  }else{
+	  std::fill(output.effort.begin(),output.effort.end(),0.0);
   }
 }
 

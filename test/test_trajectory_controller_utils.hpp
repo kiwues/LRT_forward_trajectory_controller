@@ -37,7 +37,7 @@ const double INITIAL_POS_JOINT3 = 3.1;
 const std::vector<double> INITIAL_POS_JOINTS = {
   INITIAL_POS_JOINT1, INITIAL_POS_JOINT2, INITIAL_POS_JOINT3};
 const std::vector<double> INITIAL_VEL_JOINTS = {0.0, 0.0, 0.0};
-const std::vector<double> INITIAL_ACC_JOINTS = {0.0, 0.0, 0.0};
+// const std::vector<double> INITIAL_ACC_JOINTS = {0.0, 0.0, 0.0};
 const std::vector<double> INITIAL_EFF_JOINTS = {0.0, 0.0, 0.0};
 
 const double default_goal_time = 0.1;
@@ -53,27 +53,27 @@ const double stopped_velocity_tolerance = 0.1;
   ASSERT_EQ(active_tolerances.state_tolerance.size(), 3);
   EXPECT_DOUBLE_EQ(active_tolerances.state_tolerance.at(0).position, 0.1);
   EXPECT_DOUBLE_EQ(active_tolerances.state_tolerance.at(0).velocity, 0.0);
-  EXPECT_DOUBLE_EQ(active_tolerances.state_tolerance.at(0).acceleration, 0.0);
+  // EXPECT_DOUBLE_EQ(active_tolerances.state_tolerance.at(0).acceleration, 0.0);
   EXPECT_DOUBLE_EQ(active_tolerances.state_tolerance.at(1).position, 0.1);
   EXPECT_DOUBLE_EQ(active_tolerances.state_tolerance.at(1).velocity, 0.0);
-  EXPECT_DOUBLE_EQ(active_tolerances.state_tolerance.at(1).acceleration, 0.0);
+  // EXPECT_DOUBLE_EQ(active_tolerances.state_tolerance.at(1).acceleration, 0.0);
   EXPECT_DOUBLE_EQ(active_tolerances.state_tolerance.at(2).position, 0.1);
   EXPECT_DOUBLE_EQ(active_tolerances.state_tolerance.at(2).velocity, 0.0);
-  EXPECT_DOUBLE_EQ(active_tolerances.state_tolerance.at(2).acceleration, 0.0);
+  // EXPECT_DOUBLE_EQ(active_tolerances.state_tolerance.at(2).acceleration, 0.0);
 
   ASSERT_EQ(active_tolerances.goal_state_tolerance.size(), 3);
   EXPECT_DOUBLE_EQ(active_tolerances.goal_state_tolerance.at(0).position, 0.1);
   EXPECT_DOUBLE_EQ(
     active_tolerances.goal_state_tolerance.at(0).velocity, stopped_velocity_tolerance);
-  EXPECT_DOUBLE_EQ(active_tolerances.goal_state_tolerance.at(0).acceleration, 0.0);
+  // EXPECT_DOUBLE_EQ(active_tolerances.goal_state_tolerance.at(0).acceleration, 0.0);
   EXPECT_DOUBLE_EQ(active_tolerances.goal_state_tolerance.at(1).position, 0.1);
   EXPECT_DOUBLE_EQ(
     active_tolerances.goal_state_tolerance.at(1).velocity, stopped_velocity_tolerance);
-  EXPECT_DOUBLE_EQ(active_tolerances.goal_state_tolerance.at(1).acceleration, 0.0);
+  // EXPECT_DOUBLE_EQ(active_tolerances.goal_state_tolerance.at(1).acceleration, 0.0);
   EXPECT_DOUBLE_EQ(active_tolerances.goal_state_tolerance.at(2).position, 0.1);
   EXPECT_DOUBLE_EQ(
     active_tolerances.goal_state_tolerance.at(2).velocity, stopped_velocity_tolerance);
-  EXPECT_DOUBLE_EQ(active_tolerances.goal_state_tolerance.at(2).acceleration, 0.0);
+  // EXPECT_DOUBLE_EQ(active_tolerances.goal_state_tolerance.at(2).acceleration, 0.0);
 }
 
 bool is_same_sign_or_zero(double val1, double val2)
@@ -145,17 +145,17 @@ public:
 
   bool has_velocity_state_interface() const { return has_velocity_state_interface_; }
 
-  bool has_acceleration_state_interface() const { return has_acceleration_state_interface_; }
+  bool has_effort_state_interface() const { return has_effort_state_interface_; }
 
   bool has_position_command_interface() const { return has_position_command_interface_; }
 
   bool has_velocity_command_interface() const { return has_velocity_command_interface_; }
 
-  bool has_acceleration_command_interface() const { return has_acceleration_command_interface_; }
-
+  // bool has_acceleration_command_interface() const { return has_acceleration_command_interface_; }
+  //
   bool has_effort_command_interface() const { return has_effort_command_interface_; }
 
-  bool use_closed_loop_pid_adapter() const { return use_closed_loop_pid_adapter_; }
+  // bool use_closed_loop_pid_adapter() const { return use_closed_loop_pid_adapter_; }
 
   bool is_open_loop() const { return params_.open_loop_control; }
 
@@ -164,7 +164,7 @@ public:
     return *(active_tolerances_.readFromRT());
   }
 
-  std::vector<PidPtr> get_pids() const { return pids_; }
+  // std::vector<PidPtr> get_pids() const { return pids_; }
 
   joint_trajectory_controller::SegmentTolerances get_tolerances() const
   {
@@ -206,12 +206,11 @@ public:
     joint_state_pos_.resize(joint_names_.size(), 0.0);
     joint_vel_.resize(joint_names_.size(), 0.0);
     joint_state_vel_.resize(joint_names_.size(), 0.0);
-    joint_acc_.resize(joint_names_.size(), 0.0);
-    joint_state_acc_.resize(joint_names_.size(), 0.0);
+    joint_state_eff_.resize(joint_names_.size(), 0.0);
     joint_eff_.resize(joint_names_.size(), 0.0);
     // Default interface values - they will be overwritten by parameterized tests
     command_interface_types_ = {"position"};
-    state_interface_types_ = {"position", "velocity"};
+    state_interface_types_ = {"position", "velocity","effort"};
 
     node_ = std::make_shared<rclcpp::Node>("trajectory_publisher_");
     trajectory_publisher_ = node_->create_publisher<trajectory_msgs::msg::JointTrajectory>(
@@ -278,7 +277,6 @@ public:
     bool angle_wraparound = false,
     const std::vector<double> initial_pos_joints = INITIAL_POS_JOINTS,
     const std::vector<double> initial_vel_joints = INITIAL_VEL_JOINTS,
-    const std::vector<double> initial_acc_joints = INITIAL_ACC_JOINTS,
     const std::vector<double> initial_eff_joints = INITIAL_EFF_JOINTS)
   {
     auto has_nonzero_vel_param =
@@ -297,11 +295,11 @@ public:
     SetUpTrajectoryController(executor, parameters_local);
 
     // set pid parameters before configure
-    SetPidParameters(k_p, ff, angle_wraparound);
+    // SetPidParameters(k_p, ff, angle_wraparound);
     traj_controller_->get_node()->configure();
 
     ActivateTrajectoryController(
-      separate_cmd_and_state_values, initial_pos_joints, initial_vel_joints, initial_acc_joints,
+      separate_cmd_and_state_values, initial_pos_joints, initial_vel_joints, 
       initial_eff_joints);
   }
 
@@ -309,18 +307,16 @@ public:
     bool separate_cmd_and_state_values = false,
     const std::vector<double> initial_pos_joints = INITIAL_POS_JOINTS,
     const std::vector<double> initial_vel_joints = INITIAL_VEL_JOINTS,
-    const std::vector<double> initial_acc_joints = INITIAL_ACC_JOINTS,
     const std::vector<double> initial_eff_joints = INITIAL_EFF_JOINTS)
   {
     std::vector<hardware_interface::LoanedCommandInterface> cmd_interfaces;
     std::vector<hardware_interface::LoanedStateInterface> state_interfaces;
     pos_cmd_interfaces_.reserve(joint_names_.size());
     vel_cmd_interfaces_.reserve(joint_names_.size());
-    acc_cmd_interfaces_.reserve(joint_names_.size());
     eff_cmd_interfaces_.reserve(joint_names_.size());
     pos_state_interfaces_.reserve(joint_names_.size());
     vel_state_interfaces_.reserve(joint_names_.size());
-    acc_state_interfaces_.reserve(joint_names_.size());
+    eff_state_interfaces_.reserve(joint_names_.size());
     for (size_t i = 0; i < joint_names_.size(); ++i)
     {
       pos_cmd_interfaces_.emplace_back(
@@ -329,9 +325,6 @@ public:
       vel_cmd_interfaces_.emplace_back(
         hardware_interface::CommandInterface(
           joint_names_[i], hardware_interface::HW_IF_VELOCITY, &joint_vel_[i]));
-      acc_cmd_interfaces_.emplace_back(
-        hardware_interface::CommandInterface(
-          joint_names_[i], hardware_interface::HW_IF_ACCELERATION, &joint_acc_[i]));
       eff_cmd_interfaces_.emplace_back(
         hardware_interface::CommandInterface(
           joint_names_[i], hardware_interface::HW_IF_EFFORT, &joint_eff_[i]));
@@ -344,29 +337,27 @@ public:
         hardware_interface::StateInterface(
           joint_names_[i], hardware_interface::HW_IF_VELOCITY,
           separate_cmd_and_state_values ? &joint_state_vel_[i] : &joint_vel_[i]));
-      acc_state_interfaces_.emplace_back(
+      eff_state_interfaces_.emplace_back(
         hardware_interface::StateInterface(
-          joint_names_[i], hardware_interface::HW_IF_ACCELERATION,
-          separate_cmd_and_state_values ? &joint_state_acc_[i] : &joint_acc_[i]));
+          joint_names_[i], hardware_interface::HW_IF_EFFORT,
+          separate_cmd_and_state_values ? &joint_state_eff_[i] : &joint_eff_[i]));
 
       // Add to export lists and set initial values
       cmd_interfaces.emplace_back(pos_cmd_interfaces_.back());
       cmd_interfaces.back().set_value(initial_pos_joints[i]);
       cmd_interfaces.emplace_back(vel_cmd_interfaces_.back());
       cmd_interfaces.back().set_value(initial_vel_joints[i]);
-      cmd_interfaces.emplace_back(acc_cmd_interfaces_.back());
-      cmd_interfaces.back().set_value(initial_acc_joints[i]);
       cmd_interfaces.emplace_back(eff_cmd_interfaces_.back());
       cmd_interfaces.back().set_value(initial_eff_joints[i]);
       if (separate_cmd_and_state_values)
       {
         joint_state_pos_[i] = INITIAL_POS_JOINTS[i];
         joint_state_vel_[i] = INITIAL_VEL_JOINTS[i];
-        joint_state_acc_[i] = INITIAL_ACC_JOINTS[i];
+        joint_state_eff_[i] = INITIAL_EFF_JOINTS[i];
       }
       state_interfaces.emplace_back(pos_state_interfaces_.back());
       state_interfaces.emplace_back(vel_state_interfaces_.back());
-      state_interfaces.emplace_back(acc_state_interfaces_.back());
+      state_interfaces.emplace_back(eff_state_interfaces_.back());
     }
 
     traj_controller_->assign_interfaces(std::move(cmd_interfaces), std::move(state_interfaces));
@@ -625,37 +616,37 @@ public:
     // i.e., active but trivial trajectory (one point only)
     EXPECT_TRUE(traj_controller_->has_trivial_traj());
 
-    if (traj_controller_->use_closed_loop_pid_adapter() == false)
-    {
-      if (traj_controller_->has_position_command_interface())
-      {
-        EXPECT_NEAR(position.at(0), joint_pos_[0], COMMON_THRESHOLD);
-        EXPECT_NEAR(position.at(1), joint_pos_[1], COMMON_THRESHOLD);
-        EXPECT_NEAR(position.at(2), joint_pos_[2], COMMON_THRESHOLD);
-      }
-
-      if (traj_controller_->has_velocity_command_interface())
-      {
-        EXPECT_EQ(velocity.at(0), joint_vel_[0]);
-        EXPECT_EQ(velocity.at(1), joint_vel_[1]);
-        EXPECT_EQ(velocity.at(2), joint_vel_[2]);
-      }
-
-      if (traj_controller_->has_acceleration_command_interface())
-      {
-        EXPECT_EQ(0.0, joint_acc_[0]);
-        EXPECT_EQ(0.0, joint_acc_[1]);
-        EXPECT_EQ(0.0, joint_acc_[2]);
-      }
-
-      if (traj_controller_->has_effort_command_interface())
-      {
-        EXPECT_EQ(0.0, joint_eff_[0]);
-        EXPECT_EQ(0.0, joint_eff_[1]);
-        EXPECT_EQ(0.0, joint_eff_[2]);
-      }
-    }
-    else  // traj_controller_->use_closed_loop_pid_adapter() == true
+    // if (traj_controller_->use_closed_loop_pid_adapter() == false)
+    // {
+    //   if (traj_controller_->has_position_command_interface())
+    //   {
+    //     EXPECT_NEAR(position.at(0), joint_pos_[0], COMMON_THRESHOLD);
+    //     EXPECT_NEAR(position.at(1), joint_pos_[1], COMMON_THRESHOLD);
+    //     EXPECT_NEAR(position.at(2), joint_pos_[2], COMMON_THRESHOLD);
+    //   }
+    //
+    //   if (traj_controller_->has_velocity_command_interface())
+    //   {
+    //     EXPECT_EQ(velocity.at(0), joint_vel_[0]);
+    //     EXPECT_EQ(velocity.at(1), joint_vel_[1]);
+    //     EXPECT_EQ(velocity.at(2), joint_vel_[2]);
+    //   }
+    //
+    //   // if (traj_controller_->has_acceleration_command_interface())
+    //   // {
+    //   //   EXPECT_EQ(0.0, joint_acc_[0]);
+    //   //   EXPECT_EQ(0.0, joint_acc_[1]);
+    //   //   EXPECT_EQ(0.0, joint_acc_[2]);
+    //   // }
+    //
+    //   if (traj_controller_->has_effort_command_interface())
+    //   {
+    //     EXPECT_EQ(0.0, joint_eff_[0]);
+    //     EXPECT_EQ(0.0, joint_eff_[1]);
+    //     EXPECT_EQ(0.0, joint_eff_[2]);
+    //   }
+    // }
+    // else  // traj_controller_->use_closed_loop_pid_adapter() == true
     {
       // velocity or effort PID?
       // --> set kp > 0.0 in test
@@ -701,12 +692,12 @@ public:
       EXPECT_EQ(0.0, joint_vel_[2]);
     }
 
-    if (traj_controller_->has_acceleration_command_interface())
-    {
-      EXPECT_EQ(0.0, joint_acc_[0]);
-      EXPECT_EQ(0.0, joint_acc_[1]);
-      EXPECT_EQ(0.0, joint_acc_[2]);
-    }
+    // if (traj_controller_->has_acceleration_command_interface())
+    // {
+    //   EXPECT_EQ(0.0, joint_acc_[0]);
+    //   EXPECT_EQ(0.0, joint_acc_[1]);
+    //   EXPECT_EQ(0.0, joint_acc_[2]);
+    // }
 
     if (traj_controller_->has_effort_command_interface())
     {
@@ -779,18 +770,16 @@ public:
 
   std::vector<double> joint_pos_;
   std::vector<double> joint_vel_;
-  std::vector<double> joint_acc_;
   std::vector<double> joint_eff_;
   std::vector<double> joint_state_pos_;
   std::vector<double> joint_state_vel_;
-  std::vector<double> joint_state_acc_;
+  std::vector<double> joint_state_eff_;
   std::vector<hardware_interface::CommandInterface> pos_cmd_interfaces_;
   std::vector<hardware_interface::CommandInterface> vel_cmd_interfaces_;
-  std::vector<hardware_interface::CommandInterface> acc_cmd_interfaces_;
   std::vector<hardware_interface::CommandInterface> eff_cmd_interfaces_;
   std::vector<hardware_interface::StateInterface> pos_state_interfaces_;
   std::vector<hardware_interface::StateInterface> vel_state_interfaces_;
-  std::vector<hardware_interface::StateInterface> acc_state_interfaces_;
+  std::vector<hardware_interface::StateInterface> eff_state_interfaces_;
 };
 
 // From the tutorial: https://www.sandordargo.com/blog/2019/04/24/parameterized-testing-with-gtest

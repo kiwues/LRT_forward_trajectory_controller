@@ -1045,12 +1045,12 @@ TEST_P(TestTrajectoryActionsTestParameterized, deactivate_controller_aborts_acti
     EXPECT_EQ(0.0, joint_vel_[2]);
   }
 
-  if (traj_controller_->has_acceleration_command_interface())
-  {
-    EXPECT_EQ(0.0, joint_acc_[0]);
-    EXPECT_EQ(0.0, joint_acc_[1]);
-    EXPECT_EQ(0.0, joint_acc_[2]);
-  }
+  // if (traj_controller_->has_acceleration_command_interface())
+  // {
+  //   EXPECT_EQ(0.0, joint_acc_[0]);
+  //   EXPECT_EQ(0.0, joint_acc_[1]);
+  //   EXPECT_EQ(0.0, joint_acc_[2]);
+  // }
 
   if (traj_controller_->has_effort_command_interface())
   {
